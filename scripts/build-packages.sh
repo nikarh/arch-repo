@@ -21,6 +21,37 @@ work_root="$(mktemp -d)"
 manifest_tmp="$work_root/manifest.ndjson"
 release_assets_file="$work_root/release-assets.txt"
 trap 'rm -rf "$work_root"' EXIT
+retry_count="${BUILD_RETRY_COUNT:-3}"
+retry_delay_sec="${BUILD_RETRY_DELAY_SEC:-20}"
+
+if ! [[ "$retry_count" =~ ^[0-9]+$ ]] || (( retry_count < 1 )); then
+  echo "BUILD_RETRY_COUNT must be an integer >= 1" >&2
+  exit 1
+fi
+if ! [[ "$retry_delay_sec" =~ ^[0-9]+$ ]] || (( retry_delay_sec < 0 )); then
+  echo "BUILD_RETRY_DELAY_SEC must be an integer >= 0" >&2
+  exit 1
+fi
+
+retry_cmd() {
+  local label="$1"
+  shift
+  local attempt=1
+  local rc=0
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+    rc=$?
+    if (( attempt >= retry_count )); then
+      echo "ERROR: $label failed after ${retry_count} attempts" >&2
+      return "$rc"
+    fi
+    echo "WARN: $label failed (attempt ${attempt}/${retry_count}); retrying in ${retry_delay_sec}s" >&2
+    sleep "$retry_delay_sec"
+    attempt=$((attempt + 1))
+  done
+}
 
 global_skip_existing=$(jq -r '.repo.prebuild_skip_existing_version // true' "$config_file")
 global_same_policy=$(jq -r '.repo.same_version_rebuild_policy // "warn_skip_upload"' "$config_file")
@@ -105,7 +136,11 @@ while IFS= read -r pkg; do
   case "$pkg_type" in
     aur)
       aur_name=$(jq -r '.aur' <<<"$pkg")
-      git clone --depth=1 "https://aur.archlinux.org/${aur_name}.git" "$src_dir"
+      clone_aur() {
+        rm -rf "$src_dir"
+        git clone --depth=1 "https://aur.archlinux.org/${aur_name}.git" "$src_dir"
+      }
+      retry_cmd "clone AUR package $aur_name" clone_aur
       ;;
     local)
       local_path=$(jq -r '.path' <<<"$pkg")
@@ -156,7 +191,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)
