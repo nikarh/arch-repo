@@ -96,6 +96,7 @@ resolve_aur_deps() {
 
   srcinfo="$(sudo -u "$build_user" makepkg --printsrcinfo)"
   while IFS= read -r dep_line; do
+    dep_line="${dep_line#"${dep_line%%[![:space:]]*}"}"
     case "$dep_line" in
       "depends = "*|"makedepends = "*|"checkdepends = "*)
         dep_name="${dep_line#*= }"
@@ -193,6 +194,7 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   srcinfo="$(bash -lc "cd '$src_dir' && makepkg --printsrcinfo")"
   mapfile -t dep_names < <(
     while IFS= read -r dep_line; do
+      dep_line="${dep_line#"${dep_line%%[![:space:]]*}"}"
       case "$dep_line" in
         "depends = "*|"makedepends = "*|"checkdepends = "*)
           dep_name="${dep_line#*= }"
