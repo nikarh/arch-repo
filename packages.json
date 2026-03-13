@@ -1,0 +1,20 @@
+{
+  "repo": {
+    "name": "arc-poc",
+    "same_version_policy": "fail"
+  },
+  "packages": [
+    {
+      "id": "lsix",
+      "type": "aur",
+      "aur": "lsix",
+      "arches": ["x86_64", "aarch64"]
+    },
+    {
+      "id": "hello-text",
+      "type": "local",
+      "path": "packages/hello-text",
+      "arches": ["x86_64"]
+    }
+  ]
+}

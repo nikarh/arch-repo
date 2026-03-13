@@ -1,0 +1,13 @@
+pkgname=hello-text
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='POC package that installs one text file'
+arch=('any')
+url='https://example.invalid/arc-poc'
+license=('MIT')
+source=('hello.txt')
+sha256sums=('SKIP')
+
+package() {
+  install -Dm644 hello.txt "$pkgdir/usr/share/hello-text/hello.txt"
+}
