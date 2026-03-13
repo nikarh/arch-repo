@@ -46,9 +46,9 @@ Pacman will then fetch:
   },
   "packages": [
     {
-      "id": "lsix",
+      "id": "broadcom-bt-firmware",
       "type": "aur",
-      "aur": "lsix",
+      "aur": "broadcom-bt-firmware",
       "arches": ["x86_64", "aarch64"]
     },
     {
