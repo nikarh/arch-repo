@@ -114,6 +114,12 @@
       "arches": ["x86_64", "aarch64"]
     },
     {
+      "id": "qdirstat",
+      "type": "aur",
+      "aur": "qdirstat",
+      "arches": ["x86_64"]
+    },
+    {
       "id": "slack-desktop",
       "type": "aur",
       "aur": "slack-desktop",
@@ -124,6 +130,12 @@
       "type": "aur",
       "aur": "systemd-boot-pacman-hook",
       "arches": ["x86_64", "aarch64"]
+    },
+    {
+      "id": "ttf-ms-win10-auto",
+      "type": "aur",
+      "aur": "ttf-ms-win10-auto",
+      "arches": ["x86_64"]
     },
     {
       "id": "voxtype",
