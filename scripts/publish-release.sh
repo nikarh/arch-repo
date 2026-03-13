@@ -181,8 +181,7 @@ if [[ -n "${GPG_PRIVATE_KEY_B64:-}" && -n "${GPG_KEY_ID:-}" ]]; then
   done
 fi
 
-cp "$state_file" "$tmp_root/state.json"
-upload_list+=("$tmp_root/state.json")
+upload_list+=("$state_file")
 
 for selected in "${selected_files[@]}"; do
   upload_list+=("$selected_dir/$selected")
