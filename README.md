@@ -92,6 +92,8 @@ Field notes:
 - `packages[].extra_build_deps` (optional):
   - Extra Arch packages installed in the build container before running `makepkg`.
   - Useful when upstream PKGBUILD is missing some `makedepends`.
+- AUR dependencies are resolved automatically during build (including recursive AUR deps) using `yay` when a dependency is not found in official repos.
+  - Set `ENABLE_AUR_DEPS=0` in environment to disable this behavior.
 - If a package PKGBUILD declares `validpgpkeys`, build automatically tries to import those keys before source verification.
 - If a package is listed for an arch but PKGBUILD does not support that arch, it is skipped with a warning for that arch build.
 
