@@ -64,7 +64,7 @@ cd /src
 
 # Import any package-declared signing keys before source verification.
 if [[ -f PKGBUILD ]]; then
-  mapfile -t pkg_keys < <(makepkg --printsrcinfo | sed -n 's/^\\s*validpgpkeys\\s*=\\s*//p' | sort -u)
+  mapfile -t pkg_keys < <(sudo -u "$build_user" makepkg --printsrcinfo | sed -n 's/^\\s*validpgpkeys\\s*=\\s*//p' | sort -u)
   if [[ ${#pkg_keys[@]} -gt 0 ]]; then
     sudo -u "$build_user" gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "${pkg_keys[@]}" || true
   fi

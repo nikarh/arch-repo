@@ -9,13 +9,13 @@
       "id": "broadcom-bt-firmware",
       "type": "aur",
       "aur": "broadcom-bt-firmware",
-      "arches": ["x86_64", "aarch64"]
+      "arches": ["x86_64"]
     },
     {
       "id": "chromium-widevine",
       "type": "aur",
       "aur": "chromium-widevine",
-      "arches": ["x86_64", "aarch64"]
+      "arches": ["x86_64"]
     },
     {
       "id": "code-features",
@@ -39,7 +39,7 @@
       "id": "blktrace",
       "type": "aur",
       "aur": "blktrace",
-      "arches": ["x86_64", "aarch64"]
+      "arches": ["x86_64"]
     },
     {
       "id": "cursor-bin",
