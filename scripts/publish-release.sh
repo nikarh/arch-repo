@@ -62,7 +62,8 @@ cp -a "$existing_dir"/. "$combined_dir"/ 2>/dev/null || true
 
 mapfile -t new_pkgfiles < <(find "$artifact_dir" -maxdepth 1 -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort)
 if [[ ${#new_pkgfiles[@]} -eq 0 ]]; then
-  echo "No package files to process for $arch"
+  echo "No package files to process for $arch; skipping release update"
+  exit 0
 fi
 
 declare -a selected_files=()
@@ -126,6 +127,11 @@ for pkgpath in "${new_pkgfiles[@]}"; do
     mv "$state_file_tmp" "$state_file"
   fi
 done
+
+if [[ ${#selected_files[@]} -eq 0 ]]; then
+  echo "No selected package updates for $arch; skipping release update"
+  exit 0
+fi
 
 repo_script=$(cat <<'EOS'
 set -euo pipefail
@@ -197,7 +203,7 @@ for selected in "${selected_files[@]}"; do
 done
 
 # Deduplicate upload paths.
-mapfile -t upload_list < <(printf '%s\n' "${upload_list[@]}" | awk 'NF && !seen[$0]++')
+mapfile -t upload_list < <(printf '%s\n' "${upload_list[@]}" | sed '/^$/d' | sort -u)
 
 if [[ ${#upload_list[@]} -gt 0 ]]; then
   gh release upload "$release_tag" --clobber "${upload_list[@]}"
