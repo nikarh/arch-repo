@@ -18,7 +18,34 @@ fi
 mkdir -p "$out_dir"
 work_root="$(mktemp -d)"
 manifest_tmp="$work_root/manifest.ndjson"
+release_assets_file="$work_root/release-assets.txt"
 trap 'rm -rf "$work_root"' EXIT
+
+global_skip_existing=$(jq -r '.repo.prebuild_skip_existing_version // true' "$config_file")
+global_same_policy=$(jq -r '.repo.same_version_rebuild_policy // "warn_skip_upload"' "$config_file")
+
+if [[ "$global_same_policy" != "warn_skip_upload" ]]; then
+  echo "repo.same_version_rebuild_policy only supports warn_skip_upload globally" >&2
+  exit 1
+fi
+
+: > "$release_assets_file"
+api_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+if [[ -n "${GITHUB_REPOSITORY:-}" && -n "$api_token" ]]; then
+  rel_json="$work_root/release.json"
+  rel_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/repo-${arch}"
+  if curl -fsSL \
+    -H "Authorization: Bearer ${api_token}" \
+    -H "Accept: application/vnd.github+json" \
+    "$rel_url" > "$rel_json"; then
+    jq -r '.assets[]?.name' "$rel_json" > "$release_assets_file"
+    echo "Loaded $(wc -l < "$release_assets_file") release assets from repo-${arch}"
+  else
+    echo "No existing release assets found for repo-${arch}; all packages will build"
+  fi
+else
+  echo "Missing GITHUB_REPOSITORY or token; release-aware prebuild skipping disabled"
+fi
 
 count=$(jq --arg arch "$arch" '[.packages[] | select((.arches // ["x86_64","aarch64"]) | index($arch))] | length' "$config_file")
 if [[ "$count" -eq 0 ]]; then
@@ -31,9 +58,20 @@ while IFS= read -r pkg; do
   pkg_type=$(jq -r '.type' <<<"$pkg")
   pkg_work="$work_root/$pkg_id"
   src_dir="$pkg_work/src"
-  mkdir -p "$src_dir"
+  pkg_out="$pkg_work/out"
+  mkdir -p "$src_dir" "$pkg_out"
 
-  echo "==> building $pkg_id ($pkg_type) for $arch"
+  pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" '.prebuild_skip_existing_version // $def' <<<"$pkg")
+  pkg_same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$pkg")
+  if [[ -z "$pkg_same_policy" ]]; then
+    pkg_same_policy="$global_same_policy"
+  fi
+  if [[ "$pkg_same_policy" != "warn_skip_upload" && "$pkg_same_policy" != "force_upload" ]]; then
+    echo "invalid same_version_rebuild_policy for $pkg_id: $pkg_same_policy" >&2
+    exit 1
+  fi
+
+  echo "==> processing $pkg_id ($pkg_type) for $arch"
 
   case "$pkg_type" in
     aur)
@@ -50,32 +88,80 @@ while IFS= read -r pkg; do
       ;;
   esac
 
-  "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$out_dir"
-done
+  mapfile -t expected_files < <("$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list | sort -u)
+  expected_non_debug=()
+  for expected in "${expected_files[@]}"; do
+    [[ -z "$expected" ]] && continue
+    if [[ "$expected" == *-debug-* ]]; then
+      continue
+    fi
+    expected_non_debug+=("$expected")
+  done
 
-shopt -s nullglob
-for pkgfile in "$out_dir"/*.pkg.tar.*; do
-  [[ "$pkgfile" == *.sig ]] && continue
-  filename=$(basename "$pkgfile")
-  if [[ ! "$filename" =~ ^(.+)-([^-]+)-([^-]+)-([^-]+)\.pkg\.tar\..+$ ]]; then
-    echo "unable to parse package filename: $filename" >&2
+  should_build=1
+  if [[ "$pkg_skip_existing" == "true" && -s "$release_assets_file" && ${#expected_non_debug[@]} -gt 0 ]]; then
+    all_found=1
+    for expected in "${expected_non_debug[@]}"; do
+      if ! grep -Fxq "$expected" "$release_assets_file"; then
+        all_found=0
+        break
+      fi
+    done
+    if [[ "$all_found" -eq 1 ]]; then
+      should_build=0
+      echo "SKIP BUILD: $pkg_id already has version assets in repo-${arch}"
+    fi
+  fi
+
+  if [[ "$should_build" -eq 0 ]]; then
+    continue
+  fi
+
+  "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
+
+  shopt -s nullglob
+  pkg_files=("$pkg_out"/*.pkg.tar.*)
+  if [[ ${#pkg_files[@]} -eq 0 ]]; then
+    echo "no package files produced for $pkg_id" >&2
     exit 1
   fi
 
-  pkgname="${BASH_REMATCH[1]}"
-  pkgver="${BASH_REMATCH[2]}"
-  pkgrel="${BASH_REMATCH[3]}"
-  pkgarch="${BASH_REMATCH[4]}"
-  sha256=$(sha256sum "$pkgfile" | awk '{print $1}')
+  for pkgfile in "${pkg_files[@]}"; do
+    [[ "$pkgfile" == *.sig ]] && continue
 
-  jq -nc \
-    --arg pkgname "$pkgname" \
-    --arg version "$pkgver-$pkgrel" \
-    --arg arch "$pkgarch" \
-    --arg filename "$filename" \
-    --arg sha256 "$sha256" \
-    '{pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256}' >> "$manifest_tmp"
+    filename=$(basename "$pkgfile")
+    if [[ ! "$filename" =~ ^(.+)-([^-]+)-([^-]+)-([^-]+)\.pkg\.tar\..+$ ]]; then
+      echo "unable to parse package filename: $filename" >&2
+      exit 1
+    fi
+
+    cp "$pkgfile" "$out_dir/$filename"
+    if [[ -f "$pkgfile.sig" ]]; then
+      cp "$pkgfile.sig" "$out_dir/$filename.sig"
+    fi
+
+    pkgname="${BASH_REMATCH[1]}"
+    pkgver="${BASH_REMATCH[2]}"
+    pkgrel="${BASH_REMATCH[3]}"
+    pkgarch="${BASH_REMATCH[4]}"
+    sha256=$(sha256sum "$pkgfile" | awk '{print $1}')
+
+    jq -nc \
+      --arg pkg_id "$pkg_id" \
+      --arg pkgname "$pkgname" \
+      --arg version "$pkgver-$pkgrel" \
+      --arg arch "$pkgarch" \
+      --arg filename "$filename" \
+      --arg sha256 "$sha256" \
+      --arg same_version_rebuild_policy "$pkg_same_policy" \
+      '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy}' >> "$manifest_tmp"
+  done
 done
 
-jq -s '.' "$manifest_tmp" > "$out_dir/manifest.json"
+if [[ -f "$manifest_tmp" ]]; then
+  jq -s '.' "$manifest_tmp" > "$out_dir/manifest.json"
+else
+  echo '[]' > "$out_dir/manifest.json"
+fi
+
 echo "Wrote manifest to $out_dir/manifest.json"

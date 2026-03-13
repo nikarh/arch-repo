@@ -31,6 +31,8 @@ jobs:
           sudo apt-get install -y jq
 
       - name: Build configured packages
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           chmod +x scripts/*.sh
           scripts/build-packages.sh "${{ matrix.arch }}" "./dist/${{ matrix.arch }}"

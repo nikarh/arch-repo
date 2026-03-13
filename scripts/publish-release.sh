@@ -24,7 +24,12 @@ if [[ -z "${GITHUB_REPOSITORY:-}" ]]; then
 fi
 
 repo_name=$(jq -r '.repo.name // "arc-poc"' "$config_file")
-same_version_policy=$(jq -r '.repo.same_version_policy // "fail"' "$config_file")
+global_same_policy=$(jq -r '.repo.same_version_rebuild_policy // "warn_skip_upload"' "$config_file")
+if [[ "$global_same_policy" != "warn_skip_upload" ]]; then
+  echo "repo.same_version_rebuild_policy only supports warn_skip_upload globally" >&2
+  exit 1
+fi
+
 release_tag="repo-${arch}"
 
 tmp_root="$(mktemp -d)"
@@ -74,6 +79,10 @@ for pkgpath in "${new_pkgfiles[@]}"; do
   pkgname=$(jq -r '.pkgname' <<<"$info")
   version=$(jq -r '.version' <<<"$info")
   sha256=$(jq -r '.sha256' <<<"$info")
+  same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$info")
+  if [[ -z "$same_policy" ]]; then
+    same_policy="$global_same_policy"
+  fi
 
   prev_entry=$(jq -c --arg pkg "$pkgname" '.packages[$pkg] // empty' "$prev_state")
   select_pkg=1
@@ -87,12 +96,12 @@ for pkgpath in "${new_pkgfiles[@]}"; do
         select_pkg=0
         echo "SKIP: $pkgname $version unchanged"
       else
-        msg="same version but different content for $pkgname ($version)"
-        if [[ "$same_version_policy" == "fail" ]]; then
-          echo "ERROR: $msg" >&2
-          exit 1
+        if [[ "$same_policy" == "force_upload" ]]; then
+          echo "WARNING: same version but different content for $pkgname ($version); forcing upload due package policy"
+        else
+          echo "WARNING: same version but different content for $pkgname ($version); skipping upload"
+          select_pkg=0
         fi
-        echo "WARNING: $msg"
       fi
     fi
   fi

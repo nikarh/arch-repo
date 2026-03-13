@@ -42,7 +42,8 @@ Pacman will then fetch:
 {
   "repo": {
     "name": "your-repo-name",
-    "same_version_policy": "fail"
+    "prebuild_skip_existing_version": true,
+    "same_version_rebuild_policy": "warn_skip_upload"
   },
   "packages": [
     {
@@ -52,10 +53,12 @@ Pacman will then fetch:
       "arches": ["x86_64", "aarch64"]
     },
     {
-      "id": "my-custom-package",
-      "type": "local",
-      "path": "packages/my-custom-package",
-      "arches": ["x86_64"]
+      "id": "openscad-git",
+      "type": "aur",
+      "aur": "openscad-git",
+      "arches": ["x86_64"],
+      "prebuild_skip_existing_version": false,
+      "same_version_rebuild_policy": "force_upload"
     }
   ]
 }
@@ -63,13 +66,24 @@ Pacman will then fetch:
 
 Field notes:
 - `repo.name`: pacman repo name (`<name>.db`, `<name>.files`)
-- `repo.same_version_policy`:
-  - `fail`: stop if version stayed same but content changed
-  - `warn`: continue but print warning
+- `repo.prebuild_skip_existing_version` (default `true`):
+  - If release `repo-$arch` already has assets for the resolved package version, skip rebuilding that package.
+- `repo.same_version_rebuild_policy` (global, default `warn_skip_upload`):
+  - `warn_skip_upload`: if a rebuild produced same `pkgver-pkgrel` but different hash, warn and do not upload.
+  - `force_upload` is intentionally not supported globally.
 - `packages[].type`:
   - `aur`: clone from AUR using `aur`
   - `local`: build from local folder using `path`
 - `packages[].arches`: per-package arch control
+- `packages[].prebuild_skip_existing_version` (optional): per-package override for pre-build skip behavior
+- `packages[].same_version_rebuild_policy` (optional):
+  - `warn_skip_upload`: warn and skip upload when same version hash changes
+  - `force_upload`: force replace package even when version is unchanged
+
+Behavior summary:
+- Default behavior (`prebuild_skip_existing_version: true`): no unnecessary rebuilds if same-version asset already exists in release.
+- Variant 2: set `prebuild_skip_existing_version: false`, keep `same_version_rebuild_policy: warn_skip_upload`.
+- Variant 3: same as Variant 2, but set package override `same_version_rebuild_policy: force_upload`.
 
 ### Custom package layout
 
