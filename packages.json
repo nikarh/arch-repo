@@ -132,12 +132,6 @@
       "arches": ["x86_64", "aarch64"]
     },
     {
-      "id": "ttf-ms-win10-auto",
-      "type": "aur",
-      "aur": "ttf-ms-win10-auto",
-      "arches": ["x86_64"]
-    },
-    {
       "id": "voxtype",
       "type": "aur",
       "aur": "voxtype",
