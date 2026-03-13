@@ -69,10 +69,11 @@ sudo -u "$build_user" gpg --batch --import /usr/share/pacman/keyrings/archlinux.
 if [[ -f PKGBUILD ]]; then
   mapfile -t pkg_keys < <(sudo -u "$build_user" makepkg --printsrcinfo | sed -n 's/^\\s*validpgpkeys\\s*=\\s*//p' | sort -u)
   if [[ ${#pkg_keys[@]} -gt 0 ]]; then
+    gpg_recv_opts=(--batch --no-tty --keyserver-options timeout=10)
     for key in "${pkg_keys[@]}"; do
-      sudo -u "$build_user" gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
-        || sudo -u "$build_user" gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" \
-        || sudo -u "$build_user" gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$key" \
+      sudo -u "$build_user" gpg "${gpg_recv_opts[@]}" --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
+        || sudo -u "$build_user" gpg "${gpg_recv_opts[@]}" --keyserver hkps://keys.openpgp.org --recv-keys "$key" \
+        || sudo -u "$build_user" gpg "${gpg_recv_opts[@]}" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$key" \
         || true
     done
   fi
