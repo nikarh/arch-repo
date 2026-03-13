@@ -7,6 +7,10 @@ on:
         description: 'Optional package selector (.id or .aur from packages.json)'
         required: false
         default: ''
+      publish:
+        description: 'Run publish stage (set false for bulk rebuild dispatches)'
+        required: false
+        default: 'true'
   schedule:
     - cron: '0 2 * * *'
 
@@ -56,6 +60,7 @@ jobs:
 
   publish:
     name: Publish repo assets (${{ matrix.arch }})
+    if: ${{ github.event.inputs.publish != 'false' }}
     runs-on: ubuntu-latest
     needs: build
     concurrency:

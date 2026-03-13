@@ -38,6 +38,7 @@ Pacman will then fetch:
 
 For faster checks, manual workflow runs support an optional `package` input.
 Set it to a package `.id` or `.aur` name from `packages.json` to build only that package.
+Manual runs also support `publish` (default `true`). For bulk rebuild dispatches, set `publish=false` and run one final publish-enabled workflow at the end.
 
 ### `packages.json` structure
 
@@ -165,6 +166,13 @@ Run local smoke test for one package only:
 
 ```bash
 scripts/local-ci-test.sh ./.tmp/test-build yay
+```
+
+Dispatch rebuilds for all configured packages without publish contention:
+
+```bash
+chmod +x scripts/*.sh
+scripts/dispatch-rebuild-all.sh nikarh/arch-repo
 ```
 
 Retry tuning (local and CI):
