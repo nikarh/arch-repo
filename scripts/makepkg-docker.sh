@@ -77,8 +77,8 @@ install_yay() {
     return 0
   fi
   tmp_yay="$(mktemp -d)"
-  git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp_yay/yay"
-  chown -R "$host_uid:$host_gid" "$tmp_yay/yay"
+  chown "$host_uid:$host_gid" "$tmp_yay"
+  sudo -u "$build_user" git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp_yay/yay"
   sudo -u "$build_user" bash -lc "cd '$tmp_yay/yay' && makepkg --syncdeps --noconfirm --needed --clean --skippgpcheck"
   yay_pkg="$(find "$tmp_yay/yay" -maxdepth 1 -type f -name '*.pkg.tar.*' ! -name '*.sig' | head -n1)"
   if [[ -z "$yay_pkg" ]]; then
