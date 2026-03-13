@@ -2,6 +2,11 @@ name: Build and Publish Pacman Repo
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: 'Optional package selector (.id or .aur from packages.json)'
+        required: false
+        default: ''
   schedule:
     - cron: '0 2 * * *'
 
@@ -33,9 +38,10 @@ jobs:
       - name: Build configured packages
         env:
           GH_TOKEN: ${{ github.token }}
+          PACKAGE_FILTER: ${{ github.event.inputs.package || '' }}
         run: |
           chmod +x scripts/*.sh
-          scripts/build-packages.sh "${{ matrix.arch }}" "./dist/${{ matrix.arch }}"
+          scripts/build-packages.sh "${{ matrix.arch }}" "./dist/${{ matrix.arch }}" "${PACKAGE_FILTER}"
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7.0.0

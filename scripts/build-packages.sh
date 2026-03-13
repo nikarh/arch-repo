@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
-  echo "usage: $0 <arch> <out_dir>" >&2
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+  echo "usage: $0 <arch> <out_dir> [package_filter]" >&2
   exit 1
 fi
 
 arch="$1"
 out_dir="$(realpath -m "$2")"
+package_filter="${3:-${PACKAGE_FILTER:-}}"
 config_file="packages.json"
 
 if [[ ! -f "$config_file" ]]; then
@@ -47,12 +48,40 @@ else
   echo "Missing GITHUB_REPOSITORY or token; release-aware prebuild skipping disabled"
 fi
 
-count=$(jq --arg arch "$arch" '[.packages[] | select((.arches // ["x86_64","aarch64"]) | index($arch))] | length' "$config_file")
+count=$(jq \
+  --arg arch "$arch" \
+  --arg package_filter "$package_filter" \
+  '
+  [
+    .packages[]
+    | select((.arches // ["x86_64","aarch64"]) | index($arch))
+    | select(
+        ($package_filter == "")
+        or (.id == $package_filter)
+        or ((.aur // "") == $package_filter)
+      )
+  ] | length
+  ' "$config_file")
 if [[ "$count" -eq 0 ]]; then
-  echo "No packages configured for arch=$arch"
+  if [[ -n "$package_filter" ]]; then
+    echo "No packages configured for arch=$arch matching package_filter=$package_filter"
+  else
+    echo "No packages configured for arch=$arch"
+  fi
 fi
 
-jq -c --arg arch "$arch" '.packages[] | select((.arches // ["x86_64","aarch64"]) | index($arch))' "$config_file" | \
+jq -c \
+  --arg arch "$arch" \
+  --arg package_filter "$package_filter" \
+  '
+  .packages[]
+  | select((.arches // ["x86_64","aarch64"]) | index($arch))
+  | select(
+      ($package_filter == "")
+      or (.id == $package_filter)
+      or ((.aur // "") == $package_filter)
+    )
+  ' "$config_file" | \
 while IFS= read -r pkg; do
   pkg_id=$(jq -r '.id' <<<"$pkg")
   pkg_type=$(jq -r '.type' <<<"$pkg")
