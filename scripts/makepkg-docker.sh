@@ -51,7 +51,7 @@ if [[ "$disable_sandbox_set" -eq 0 ]]; then
   sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
 fi
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
-pacman -S --noconfirm --needed base-devel git sudo gnupg >/dev/null
+pacman -S --noconfirm --needed base-devel git sudo gnupg curl jq >/dev/null
 if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
   pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
 fi
@@ -72,9 +72,76 @@ chmod 0440 /etc/sudoers.d/builder-pacman
 
 cd /src
 
+install_yay() {
+  if command -v yay >/dev/null 2>&1; then
+    return 0
+  fi
+  tmp_yay="$(mktemp -d)"
+  git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp_yay/yay"
+  chown -R "$host_uid:$host_gid" "$tmp_yay/yay"
+  sudo -u "$build_user" bash -lc "cd '$tmp_yay/yay' && makepkg --syncdeps --noconfirm --needed --clean --skippgpcheck"
+  yay_pkg="$(find "$tmp_yay/yay" -maxdepth 1 -type f -name '*.pkg.tar.*' ! -name '*.sig' | head -n1)"
+  if [[ -z "$yay_pkg" ]]; then
+    echo "failed to build yay package" >&2
+    exit 1
+  fi
+  pacman -U --noconfirm "$yay_pkg" >/dev/null
+  rm -rf "$tmp_yay"
+}
+
+resolve_aur_deps() {
+  local srcinfo dep_line dep_name dep_lookup
+  local -a dep_names=()
+  local -a aur_deps=()
+
+  srcinfo="$(sudo -u "$build_user" makepkg --printsrcinfo)"
+  while IFS= read -r dep_line; do
+    case "$dep_line" in
+      "depends = "*|"makedepends = "*|"checkdepends = "*)
+        dep_name="${dep_line#*= }"
+        dep_name="${dep_name%%[<>=]*}"
+        dep_name="${dep_name//[[:space:]]/}"
+        [[ -z "$dep_name" ]] && continue
+        # Soname/path style deps are not package names.
+        [[ "$dep_name" == *".so"* || "$dep_name" == */* ]] && continue
+        dep_names+=("$dep_name")
+        ;;
+    esac
+  done <<< "$srcinfo"
+
+  if [[ ${#dep_names[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  mapfile -t dep_names < <(printf '%s\n' "${dep_names[@]}" | sort -u)
+  for dep_lookup in "${dep_names[@]}"; do
+    if pacman -Si "$dep_lookup" >/dev/null 2>&1 || pacman -Q "$dep_lookup" >/dev/null 2>&1; then
+      continue
+    fi
+    if curl -fsSL "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]=${dep_lookup}" | jq -e '.resultcount > 0' >/dev/null 2>&1; then
+      aur_deps+=("$dep_lookup")
+    fi
+  done
+
+  if [[ ${#aur_deps[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  install_yay
+  sudo -u "$build_user" yay -S --noconfirm --needed --asdeps \
+    --mflags "--noconfirm --needed --skippgpcheck" \
+    --answerclean None \
+    --answerdiff None \
+    "${aur_deps[@]}"
+}
+
 if [[ "$MODE" == "list" ]]; then
   sudo -u "$build_user" makepkg --packagelist | sed 's#^.*/##'
   exit 0
+fi
+
+if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
+  resolve_aur_deps
 fi
 
 sudo -u "$build_user" makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
@@ -112,7 +179,7 @@ if ! command -v pacman >/dev/null 2>&1; then
   exit 1
 fi
 
-sudo pacman -Syu --noconfirm --needed archlinux-keyring base-devel git sudo >/dev/null
+sudo pacman -Syu --noconfirm --needed archlinux-keyring base-devel git sudo curl jq >/dev/null
 if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
   sudo pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
 fi
@@ -120,6 +187,54 @@ fi
 if [[ "$mode" == "list" ]]; then
   bash -lc "cd '$src_dir' && makepkg --packagelist" | sed 's#^.*/##'
   exit 0
+fi
+
+if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
+  srcinfo="$(bash -lc "cd '$src_dir' && makepkg --printsrcinfo")"
+  mapfile -t dep_names < <(
+    while IFS= read -r dep_line; do
+      case "$dep_line" in
+        "depends = "*|"makedepends = "*|"checkdepends = "*)
+          dep_name="${dep_line#*= }"
+          dep_name="${dep_name%%[<>=]*}"
+          dep_name="${dep_name//[[:space:]]/}"
+          [[ -z "$dep_name" ]] && continue
+          [[ "$dep_name" == *".so"* || "$dep_name" == */* ]] && continue
+          echo "$dep_name"
+          ;;
+      esac
+    done <<< "$srcinfo" | sort -u
+  )
+
+  aur_deps=()
+  for dep_lookup in "${dep_names[@]}"; do
+    if pacman -Si "$dep_lookup" >/dev/null 2>&1 || pacman -Q "$dep_lookup" >/dev/null 2>&1; then
+      continue
+    fi
+    if curl -fsSL "https://aur.archlinux.org/rpc/?v=5&type=info&arg[]=${dep_lookup}" | jq -e '.resultcount > 0' >/dev/null 2>&1; then
+      aur_deps+=("$dep_lookup")
+    fi
+  done
+
+  if [[ ${#aur_deps[@]} -gt 0 ]]; then
+    if ! command -v yay >/dev/null 2>&1; then
+      tmp_yay="$(mktemp -d)"
+      git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp_yay/yay"
+      bash -lc "cd '$tmp_yay/yay' && makepkg --syncdeps --noconfirm --needed --clean --skippgpcheck"
+      yay_pkg="$(find "$tmp_yay/yay" -maxdepth 1 -type f -name '*.pkg.tar.*' ! -name '*.sig' | head -n1)"
+      if [[ -z "$yay_pkg" ]]; then
+        echo "failed to build yay package" >&2
+        exit 1
+      fi
+      sudo pacman -U --noconfirm "$yay_pkg" >/dev/null
+      rm -rf "$tmp_yay"
+    fi
+    yay -S --noconfirm --needed --asdeps \
+      --mflags "--noconfirm --needed --skippgpcheck" \
+      --answerclean None \
+      --answerdiff None \
+      "${aur_deps[@]}"
+  fi
 fi
 
 bash -lc "cd '$src_dir' && makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
