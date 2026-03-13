@@ -62,6 +62,13 @@ Set it to a package `.id` or `.aur` name from `packages.json` to build only that
       "arches": ["x86_64"],
       "prebuild_skip_existing_version": false,
       "same_version_rebuild_policy": "force_upload"
+    },
+    {
+      "id": "voxtype",
+      "type": "aur",
+      "aur": "voxtype",
+      "arches": ["x86_64"],
+      "extra_build_deps": ["vulkan-icd-loader", "vulkan-headers"]
     }
   ]
 }
@@ -82,6 +89,9 @@ Field notes:
 - `packages[].same_version_rebuild_policy` (optional):
   - `warn_skip_upload`: warn and skip upload when same version hash changes
   - `force_upload`: force replace package even when version is unchanged
+- `packages[].extra_build_deps` (optional):
+  - Extra Arch packages installed in the build container before running `makepkg`.
+  - Useful when upstream PKGBUILD is missing some `makedepends`.
 - If a package PKGBUILD declares `validpgpkeys`, build automatically tries to import those keys before source verification.
 - If a package is listed for an arch but PKGBUILD does not support that arch, it is skipped with a warning for that arch build.
 
