@@ -40,7 +40,14 @@ container_script=$(cat <<'EOS'
 set -euo pipefail
 export HOME=/root
 # Needed for some GitHub runners/containers where pacman sandbox cannot initialize.
-if ! awk '/^DisableSandbox$/ { found=1 } END { exit found ? 0 : 1 }' /etc/pacman.conf; then
+disable_sandbox_set=0
+while IFS= read -r line; do
+  if [[ "$line" == "DisableSandbox" ]]; then
+    disable_sandbox_set=1
+    break
+  fi
+done < /etc/pacman.conf
+if [[ "$disable_sandbox_set" -eq 0 ]]; then
   sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
 fi
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null

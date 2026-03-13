@@ -218,7 +218,8 @@ while IFS= read -r pkg; do
     pkgver="${BASH_REMATCH[2]}"
     pkgrel="${BASH_REMATCH[3]}"
     pkgarch="${BASH_REMATCH[4]}"
-    sha256=$(sha256sum "$pkgfile" | awk '{print $1}')
+    sha256_line="$(sha256sum "$pkgfile")"
+    sha256="${sha256_line%% *}"
 
     jq -nc \
       --arg pkg_id "$pkg_id" \
