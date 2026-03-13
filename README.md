@@ -36,6 +36,9 @@ Pacman will then fetch:
 5. Run the workflow manually once (`Build and Publish Pacman Repo`).
 6. Add your own repo URL in `pacman.conf`.
 
+For faster checks, manual workflow runs support an optional `package` input.
+Set it to a package `.id` or `.aur` name from `packages.json` to build only that package.
+
 ### `packages.json` structure
 
 ```json
@@ -144,6 +147,12 @@ Run a local smoke test:
 ```bash
 chmod +x scripts/*.sh
 scripts/local-ci-test.sh
+```
+
+Run local smoke test for one package only:
+
+```bash
+scripts/local-ci-test.sh ./.tmp/test-build yay
 ```
 
 ### License
