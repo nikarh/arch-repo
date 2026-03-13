@@ -30,19 +30,29 @@ mkdir -p "$out_dir"
 container_script=$(cat <<'EOS'
 set -euo pipefail
 export HOME=/root
+if ! grep -q '^DisableSandbox' /etc/pacman.conf; then
+  echo 'DisableSandbox' >> /etc/pacman.conf
+fi
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
 pacman -S --noconfirm --needed base-devel git sudo >/dev/null
 
-if ! id -u builder >/dev/null 2>&1; then
-  useradd -m builder
+host_uid="$(stat -c '%u' /src)"
+host_gid="$(stat -c '%g' /src)"
+
+if ! getent group "$host_gid" >/dev/null 2>&1; then
+  groupadd -g "$host_gid" hostgroup
 fi
-echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder-pacman
+if ! getent passwd "$host_uid" >/dev/null 2>&1; then
+  useradd -m -u "$host_uid" -g "$host_gid" builder
+fi
+build_user="$(getent passwd "$host_uid" | cut -d: -f1)"
+
+echo "$build_user ALL=(ALL) NOPASSWD: /usr/bin/pacman" > /etc/sudoers.d/builder-pacman
 chmod 0440 /etc/sudoers.d/builder-pacman
 
-chown -R builder:builder /src /out
 cd /src
 
-sudo -u builder makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar
+sudo -u "$build_user" makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar
 
 shopt -s nullglob
 for f in ./*.pkg.tar.zst ./*.pkg.tar.xz ./*.pkg.tar.gz ./*.pkg.tar.bz2; do
@@ -61,8 +71,6 @@ if command -v docker >/dev/null 2>&1; then
     -v "$out_dir:/out" \
     "$docker_image" \
     /bin/bash -lc "$container_script"
-  # Builder user inside the container may have altered ownership on host-mounted paths.
-  chown -R "$(id -u)":"$(id -g)" "$src_dir" "$out_dir" || true
   exit 0
 fi
 
