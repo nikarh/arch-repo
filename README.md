@@ -1,34 +1,46 @@
-# arc-poc: GitHub Actions Pacman Repo POC
+# Nikarh Arch Repo: Nightly Prebuilt AUR + Custom Packages
 
-This repository builds AUR packages and inlined PKGBUILD packages, then publishes prebuilt artifacts and pacman repo metadata into GitHub Releases.
+## 1) This repository
 
-## What it does
+This repository publishes nightly prebuilt Arch packages that I personally use.
 
-- Builds packages nightly and on manual trigger (`workflow_dispatch`).
-- Supports AUR packages and local package folders with `PKGBUILD` and files.
-- Builds for `x86_64` and `aarch64` by default.
-- Allows per-package arch constraints in `packages.json`.
-- Publishes packages and repo db/files to release tags:
-  - `repo-x86_64`
-  - `repo-aarch64`
-- Guards against pointless updates:
-  - If version and SHA256 are unchanged, package upload is skipped.
-  - If version is unchanged but SHA256 differs, build fails by default (`same_version_policy: fail`), configurable to `warn`.
+It includes:
+- Selected AUR packages
+- Custom local packages from `packages/`
+- Build targets for `x86_64` and `aarch64` (with per-package arch rules)
 
-## Layout
+Artifacts are published to GitHub Releases under:
+- `repo-x86_64`
+- `repo-aarch64`
 
-- `packages.json`: package definitions + repo settings.
-- `packages/<name>/`: local package sources (`PKGBUILD` and files).
-- `scripts/build-packages.sh`: builds configured packages for one architecture.
-- `scripts/publish-release.sh`: updates release-backed pacman repo assets.
-- `.github/workflows/build-and-release.yml`: CI/CD pipeline.
+To use this repo from `pacman`, add this to `/etc/pacman.conf`:
 
-## Config format (`packages.json`)
+```ini
+[nikarh]
+SigLevel = Optional TrustAll
+Server = https://github.com/nikarh/arch-repo/releases/download/repo-$arch
+```
+
+Pacman will then fetch:
+- `nikarh.db`
+- `nikarh.files`
+- package files referenced in the db
+
+## 2) Build your own prebuilt package repo from this template
+
+1. Fork or clone this repository.
+2. Edit `packages.json`.
+3. Replace/remove example custom packages in `packages/`.
+4. Enable GitHub Actions in your repo.
+5. Run the workflow manually once (`Build and Publish Pacman Repo`).
+6. Add your own repo URL in `pacman.conf`.
+
+### `packages.json` structure
 
 ```json
 {
   "repo": {
-    "name": "arc-poc",
+    "name": "your-repo-name",
     "same_version_policy": "fail"
   },
   "packages": [
@@ -39,53 +51,47 @@ This repository builds AUR packages and inlined PKGBUILD packages, then publishe
       "arches": ["x86_64", "aarch64"]
     },
     {
-      "id": "hello-text",
+      "id": "my-custom-package",
       "type": "local",
-      "path": "packages/hello-text",
+      "path": "packages/my-custom-package",
       "arches": ["x86_64"]
     }
   ]
 }
 ```
 
-`arches` controls per-package arch routing.
+Field notes:
+- `repo.name`: pacman repo name (`<name>.db`, `<name>.files`)
+- `repo.same_version_policy`:
+  - `fail`: stop if version stayed same but content changed
+  - `warn`: continue but print warning
+- `packages[].type`:
+  - `aur`: clone from AUR using `aur`
+  - `local`: build from local folder using `path`
+- `packages[].arches`: per-package arch control
 
-## pacman.conf setup
+### Custom package layout
 
-Choose arch-specific server URLs:
+Each local package should have at least:
+- `packages/<pkg>/PKGBUILD`
+- any files referenced by that PKGBUILD
 
-```ini
-[arc-poc]
-SigLevel = Optional TrustAll
-Server = https://github.com/<OWNER>/<REPO>/releases/download/repo-$arch
-```
+### Optional signing
 
-With `repo.name = "arc-poc"`, pacman fetches:
-
-- `arc-poc.db`
-- `arc-poc.files`
-- package files listed in db
-
-All are served from the same release tag path, so GH Pages is not required.
-
-## Optional signing
-
-If you provide these repository secrets, db/files are signed:
-
+If you want signed repo metadata, add these repo secrets:
 - `PACMAN_GPG_PRIVATE_KEY_B64`
 - `PACMAN_GPG_KEY_ID`
 - `PACMAN_GPG_PASSPHRASE` (optional)
 
-## Local test
+### Local verification
 
-Run an x86_64 test build locally:
+Run a local smoke test:
 
 ```bash
 chmod +x scripts/*.sh
 scripts/local-ci-test.sh
 ```
 
-This POC includes:
+### License
 
-- AUR package: `lsix`
-- Local package: `hello-text` (installs one text file)
+This project is licensed under GNU GPL v3.0. See [LICENSE](./LICENSE).
