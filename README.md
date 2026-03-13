@@ -84,6 +84,43 @@ If you want signed repo metadata, add these repo secrets:
 - `PACMAN_GPG_KEY_ID`
 - `PACMAN_GPG_PASSPHRASE` (optional)
 
+### GPG key generation and export
+
+Generate a dedicated key for repo signing:
+
+```bash
+gpg --full-generate-key
+```
+
+Recommended choices:
+- key type: `RSA and RSA`
+- key size: `4096`
+- expiration: your preference
+- user ID: something like `Pacman Repo Signing <you@example.com>`
+
+Get the key ID (long format):
+
+```bash
+gpg --list-secret-keys --keyid-format=long
+```
+
+Export secret key in base64 form for GitHub Secrets:
+
+```bash
+gpg --export-secret-keys --armor <KEY_ID> | base64 -w0
+```
+
+If your `base64` does not support `-w0`:
+
+```bash
+gpg --export-secret-keys --armor <KEY_ID> | base64 | tr -d '\n'
+```
+
+Set these repository secrets:
+- `PACMAN_GPG_PRIVATE_KEY_B64`: output of the export command above
+- `PACMAN_GPG_KEY_ID`: your key ID (example: `ABCDEF1234567890`)
+- `PACMAN_GPG_PASSPHRASE`: passphrase used for the key (omit only if key has no passphrase)
+
 ### Local verification
 
 Run a local smoke test:
