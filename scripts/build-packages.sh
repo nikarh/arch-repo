@@ -37,7 +37,7 @@ if [[ -n "${GITHUB_REPOSITORY:-}" && -n "$api_token" ]]; then
   if curl -fsSL \
     -H "Authorization: Bearer ${api_token}" \
     -H "Accept: application/vnd.github+json" \
-    "$rel_url" > "$rel_json"; then
+    "$rel_url" > "$rel_json" 2>/dev/null; then
     jq -r '.assets[]?.name' "$rel_json" > "$release_assets_file"
     echo "Loaded $(wc -l < "$release_assets_file") release assets from repo-${arch}"
   else
@@ -88,7 +88,17 @@ while IFS= read -r pkg; do
       ;;
   esac
 
-  mapfile -t expected_files < <("$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list | sort -u)
+  list_err="$pkg_work/list.err"
+  if ! "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+    if grep -q "not available for the '${arch}' architecture" "$list_err"; then
+      echo "SKIP BUILD: $pkg_id not available for arch=$arch"
+      continue
+    fi
+    cat "$list_err" >&2
+    echo "failed to resolve expected package files for $pkg_id" >&2
+    exit 1
+  fi
+  mapfile -t expected_files < <(sort -u "$pkg_work/list.out")
   expected_non_debug=()
   for expected in "${expected_files[@]}"; do
     [[ -z "$expected" ]] && continue

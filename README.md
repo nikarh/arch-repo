@@ -79,6 +79,8 @@ Field notes:
 - `packages[].same_version_rebuild_policy` (optional):
   - `warn_skip_upload`: warn and skip upload when same version hash changes
   - `force_upload`: force replace package even when version is unchanged
+- If a package PKGBUILD declares `validpgpkeys`, build automatically tries to import those keys before source verification.
+- If a package is listed for an arch but PKGBUILD does not support that arch, it is skipped with a warning for that arch build.
 
 Behavior summary:
 - Default behavior (`prebuild_skip_existing_version: true`): no unnecessary rebuilds if same-version asset already exists in release.

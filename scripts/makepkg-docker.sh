@@ -40,9 +40,11 @@ container_script=$(cat <<'EOS'
 set -euo pipefail
 export HOME=/root
 # Needed for some GitHub runners/containers where pacman sandbox cannot initialize.
-echo 'DisableSandbox' >> /etc/pacman.conf
+if ! grep -q '^DisableSandbox$' /etc/pacman.conf; then
+  sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+fi
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
-pacman -S --noconfirm --needed base-devel git sudo >/dev/null
+pacman -S --noconfirm --needed base-devel git sudo gnupg >/dev/null
 
 host_uid="$(stat -c '%u' /src)"
 host_gid="$(stat -c '%g' /src)"
@@ -59,6 +61,14 @@ echo "$build_user ALL=(ALL) NOPASSWD: /usr/bin/pacman" > /etc/sudoers.d/builder-
 chmod 0440 /etc/sudoers.d/builder-pacman
 
 cd /src
+
+# Import any package-declared signing keys before source verification.
+if [[ -f PKGBUILD ]]; then
+  mapfile -t pkg_keys < <(makepkg --printsrcinfo | sed -n 's/^\\s*validpgpkeys\\s*=\\s*//p' | sort -u)
+  if [[ ${#pkg_keys[@]} -gt 0 ]]; then
+    sudo -u "$build_user" gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "${pkg_keys[@]}" || true
+  fi
+fi
 
 if [[ "$MODE" == "list" ]]; then
   sudo -u "$build_user" makepkg --packagelist | sed 's#^.*/##'
