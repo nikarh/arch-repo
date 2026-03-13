@@ -1,8 +1,6 @@
-# Nikarh Arch Repo: Nightly Prebuilt AUR + Custom Packages
+# Archlinux Repository hosted in Github Releases
 
-## 1) This repository
-
-This repository publishes nightly prebuilt Arch packages that I personally use.
+This is an Archlinux Repository hosted with Github Releases, that contains pre-built AUR and custom packages I personally use that are re-built nightly with Github Actions CI.
 
 It includes:
 - Selected AUR packages
@@ -13,6 +11,9 @@ Artifacts are published to GitHub Releases under:
 - `repo-x86_64`
 - `repo-aarch64`
 
+## This repository
+
+This repository publishes nightly prebuilt Arch packages that I personally use.
 To use this repo from `pacman`, add this to `/etc/pacman.conf`:
 
 ```ini
@@ -26,7 +27,7 @@ Pacman will then fetch:
 - `nikarh.files`
 - package files referenced in the db
 
-## 2) Build your own prebuilt package repo from this template
+## Use it as a template to have your own Archlinux Repository
 
 1. Fork or clone this repository.
 2. Edit `packages.json`.
