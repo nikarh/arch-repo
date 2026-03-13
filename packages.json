@@ -78,18 +78,6 @@
       "arches": ["x86_64", "aarch64"]
     },
     {
-      "id": "kvantum-theme-arc",
-      "type": "aur",
-      "aur": "kvantum-theme-arc",
-      "arches": ["x86_64", "aarch64"]
-    },
-    {
-      "id": "kvantum-theme-dracula-git",
-      "type": "aur",
-      "aur": "kvantum-theme-dracula-git",
-      "arches": ["x86_64", "aarch64"]
-    },
-    {
       "id": "onlyoffice-bin",
       "type": "aur",
       "aur": "onlyoffice-bin",
