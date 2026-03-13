@@ -11,8 +11,14 @@ src_dir="$(realpath "$2")"
 out_dir="$(realpath "$3")"
 
 case "$arch" in
-  x86_64) docker_platform='linux/amd64' ;;
-  aarch64) docker_platform='linux/arm64' ;;
+  x86_64)
+    docker_platform='linux/amd64'
+    docker_image='archlinux:base-devel'
+    ;;
+  aarch64)
+    docker_platform='linux/arm64'
+    docker_image='agners/archlinuxarm:latest'
+    ;;
   *)
     echo "unsupported arch: $arch" >&2
     exit 1
@@ -30,6 +36,8 @@ pacman -S --noconfirm --needed base-devel git sudo >/dev/null
 if ! id -u builder >/dev/null 2>&1; then
   useradd -m builder
 fi
+echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder-pacman
+chmod 0440 /etc/sudoers.d/builder-pacman
 
 chown -R builder:builder /src /out
 cd /src
@@ -51,8 +59,10 @@ if command -v docker >/dev/null 2>&1; then
     --platform "$docker_platform" \
     -v "$src_dir:/src" \
     -v "$out_dir:/out" \
-    archlinux:base-devel \
+    "$docker_image" \
     /bin/bash -lc "$container_script"
+  # Builder user inside the container may have altered ownership on host-mounted paths.
+  chown -R "$(id -u)":"$(id -g)" "$src_dir" "$out_dir" || true
   exit 0
 fi
 
