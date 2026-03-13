@@ -52,6 +52,9 @@ if [[ "$disable_sandbox_set" -eq 0 ]]; then
 fi
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
 pacman -S --noconfirm --needed base-devel git sudo gnupg >/dev/null
+if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
+  pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
+fi
 
 host_uid="$(stat -c '%u' /src)"
 host_gid="$(stat -c '%g' /src)"
@@ -90,6 +93,7 @@ if command -v docker >/dev/null 2>&1; then
   docker run --rm \
     --platform "$docker_platform" \
     -e MODE="$mode" \
+    -e EXTRA_BUILD_DEPS="${EXTRA_BUILD_DEPS:-}" \
     -v "$src_dir:/src" \
     -v "$out_dir:/out" \
     "$docker_image" \
@@ -109,6 +113,9 @@ if ! command -v pacman >/dev/null 2>&1; then
 fi
 
 sudo pacman -Syu --noconfirm --needed archlinux-keyring base-devel git sudo >/dev/null
+if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
+  sudo pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
+fi
 
 if [[ "$mode" == "list" ]]; then
   bash -lc "cd '$src_dir' && makepkg --packagelist" | sed 's#^.*/##'

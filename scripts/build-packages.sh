@@ -123,6 +123,7 @@ while IFS= read -r pkg; do
 
   pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" '.prebuild_skip_existing_version // $def' <<<"$pkg")
   pkg_same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$pkg")
+  pkg_extra_build_deps=$(jq -r '(.extra_build_deps // []) | join(" ")' <<<"$pkg")
   if [[ -z "$pkg_same_policy" ]]; then
     pkg_same_policy="$global_same_policy"
   fi
@@ -153,7 +154,7 @@ while IFS= read -r pkg; do
   esac
 
   list_err="$pkg_work/list.err"
-  if ! "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
     if grep -q "not available for the '${arch}' architecture" "$list_err"; then
       echo "SKIP BUILD: $pkg_id not available for arch=$arch"
       continue
@@ -191,7 +192,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  retry_cmd "build package $pkg_id for $arch" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)

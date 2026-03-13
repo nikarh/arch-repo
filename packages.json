@@ -141,7 +141,8 @@
       "id": "voxtype",
       "type": "aur",
       "aur": "voxtype",
-      "arches": ["x86_64"]
+      "arches": ["x86_64"],
+      "extra_build_deps": ["vulkan-icd-loader", "vulkan-headers"]
     },
     {
       "id": "yay",
