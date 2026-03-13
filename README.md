@@ -155,6 +155,12 @@ Run local smoke test for one package only:
 scripts/local-ci-test.sh ./.tmp/test-build yay
 ```
 
+Retry tuning (local and CI):
+
+```bash
+BUILD_RETRY_COUNT=3 BUILD_RETRY_DELAY_SEC=20 scripts/local-ci-test.sh
+```
+
 ### License
 
 This project is licensed under GNU GPL v3.0. See [LICENSE](./LICENSE).
