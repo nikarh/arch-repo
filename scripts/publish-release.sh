@@ -137,8 +137,10 @@ if [[ ${#real_pkg_files[@]} -eq 0 ]]; then
 fi
 
 repo-add "$repo_dir/${repo_name}.db.tar.gz" "${real_pkg_files[@]}"
-cp "$repo_dir/${repo_name}.db.tar.gz" "$repo_dir/${repo_name}.db"
-cp "$repo_dir/${repo_name}.files.tar.gz" "$repo_dir/${repo_name}.files"
+
+# repo-add may create .db/.files symlinks; create them only if missing.
+[[ -e "$repo_dir/${repo_name}.db" ]] || ln -s "${repo_name}.db.tar.gz" "$repo_dir/${repo_name}.db"
+[[ -e "$repo_dir/${repo_name}.files" ]] || ln -s "${repo_name}.files.tar.gz" "$repo_dir/${repo_name}.files"
 EOS
 )
 

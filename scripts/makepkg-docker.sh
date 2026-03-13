@@ -30,9 +30,7 @@ mkdir -p "$out_dir"
 container_script=$(cat <<'EOS'
 set -euo pipefail
 export HOME=/root
-if ! grep -q '^DisableSandbox' /etc/pacman.conf; then
-  echo 'DisableSandbox' >> /etc/pacman.conf
-fi
+echo 'DisableSandbox' >> /etc/pacman.conf
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
 pacman -S --noconfirm --needed base-devel git sudo >/dev/null
 
