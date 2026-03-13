@@ -21,13 +21,13 @@
       "id": "code-features",
       "type": "aur",
       "aur": "code-features",
-      "arches": ["x86_64", "aarch64"]
+      "arches": ["x86_64"]
     },
     {
       "id": "code-marketplace",
       "type": "aur",
       "aur": "code-marketplace",
-      "arches": ["x86_64", "aarch64"]
+      "arches": ["x86_64"]
     },
     {
       "id": "asp",
