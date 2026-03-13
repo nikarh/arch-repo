@@ -43,11 +43,15 @@ jobs:
           chmod +x scripts/*.sh
           scripts/build-packages.sh "${{ matrix.arch }}" "./dist/${{ matrix.arch }}" "${PACKAGE_FILTER}"
 
+      - name: Pack build output
+        run: |
+          tar -C "dist/${{ matrix.arch }}" -czf "dist/packages-${{ matrix.arch }}.tar.gz" .
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7.0.0
         with:
           name: packages-${{ matrix.arch }}
-          path: dist/${{ matrix.arch }}
+          path: dist/packages-${{ matrix.arch }}.tar.gz
           if-no-files-found: error
 
   publish:
@@ -67,7 +71,12 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           name: packages-${{ matrix.arch }}
-          path: dist/${{ matrix.arch }}
+          path: dist
+
+      - name: Unpack build output
+        run: |
+          mkdir -p "dist/${{ matrix.arch }}"
+          tar -C "dist/${{ matrix.arch }}" -xzf "dist/packages-${{ matrix.arch }}.tar.gz"
 
       - name: Publish/update release-backed repo
         env:
