@@ -111,6 +111,10 @@
     },
     {
       "type": "local",
+      "path": "packages/xterm-alacritty-symlink"
+    },
+    {
+      "type": "local",
       "path": "packages/xorg-on-input-hierarchy-change"
     },
     {

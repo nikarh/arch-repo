@@ -1,0 +1,15 @@
+# Maintainer: Nikolay Arhipov <n at arhipov dot net>
+pkgname=xterm-alacritty-symlink
+pkgver=3
+pkgrel=1
+pkgdesc="symlink to alacritty from xterm, required by gtk-launch for terminal applications"
+arch=('any')
+license=('GPL')
+depends=('alacritty')
+provides=('xterm')
+conflicts=('xterm')
+
+package() {
+	install -dm755 "${pkgdir}/usr/bin"
+	ln -s alacritty "${pkgdir}/usr/bin/xterm"
+}
