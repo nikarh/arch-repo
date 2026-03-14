@@ -1,0 +1,36 @@
+name: Remove Packages From Repo Releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_names:
+        description: 'Comma or newline separated package names to remove from all repo-* releases'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  remove:
+    name: Remove selected packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Remove package assets and refresh repo metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GPG_PRIVATE_KEY_B64: ${{ secrets.PACMAN_GPG_PRIVATE_KEY_B64 }}
+          GPG_KEY_ID: ${{ secrets.PACMAN_GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.PACMAN_GPG_PASSPHRASE }}
+        run: |
+          chmod +x scripts/*.sh
+          scripts/remove-release-packages.sh "${{ github.event.inputs.package_names }}"

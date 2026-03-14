@@ -45,6 +45,7 @@ sudo pacman-key --lsign-key BA62FFDA500B760F
 For faster checks, manual workflow runs support an optional `package` input.
 Set it to a package `.aur` (or `.path` for local packages) from `packages.json` to build only that package.
 Manual runs also support `publish` (default `true`). For bulk rebuild dispatches, set `publish=false` and run one final publish-enabled workflow at the end.
+There is also a manual workflow named `Remove Packages From Repo Releases` that accepts comma or newline separated package names and removes them from every `repo-*` release, including package assets, repo metadata, and `state.json`.
 
 ### `packages.json` structure
 
@@ -181,6 +182,12 @@ Dispatch rebuilds for all configured packages without publish contention:
 ```bash
 chmod +x scripts/*.sh
 scripts/dispatch-rebuild-all.sh nikarh/arch-repo
+```
+
+Remove one or more published packages from all release-backed repo arches:
+
+```bash
+gh workflow run remove-packages.yml -R nikarh/arch-repo -f package_names='foo-debug,bar-debug'
 ```
 
 Retry tuning (local and CI):
