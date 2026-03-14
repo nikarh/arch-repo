@@ -44,7 +44,7 @@ sudo pacman-key --lsign-key BA62FFDA500B760F
 6. Add your own repo URL in `pacman.conf`.
 
 For faster checks, manual workflow runs support an optional `package` input.
-Set it to a package `.id` or `.aur` name from `packages.json` to build only that package.
+Set it to a package `.aur` (or `.path` for local packages) from `packages.json` to build only that package.
 Manual runs also support `publish` (default `true`). For bulk rebuild dispatches, set `publish=false` and run one final publish-enabled workflow at the end.
 
 ### `packages.json` structure
@@ -55,17 +55,15 @@ Manual runs also support `publish` (default `true`). For bulk rebuild dispatches
     "name": "your-repo-name",
     "prebuild_skip_existing_version": true,
     "same_version_rebuild_policy": "warn_skip_upload",
-    "build_auto_debug_packages": false
+    "build_auto_debug_packages": false,
+    "default_arches": ["x86_64", "aarch64"]
   },
   "packages": [
     {
-      "id": "broadcom-bt-firmware",
       "type": "aur",
-      "aur": "broadcom-bt-firmware",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "broadcom-bt-firmware"
     },
     {
-      "id": "openscad-git",
       "type": "aur",
       "aur": "openscad-git",
       "arches": ["x86_64"],
@@ -74,7 +72,6 @@ Manual runs also support `publish` (default `true`). For bulk rebuild dispatches
       "build_auto_debug_packages": false
     },
     {
-      "id": "voxtype",
       "type": "aur",
       "aur": "voxtype",
       "arches": ["x86_64"],
@@ -86,6 +83,8 @@ Manual runs also support `publish` (default `true`). For bulk rebuild dispatches
 
 Field notes:
 - `repo.name`: pacman repo name (`<name>.db`, `<name>.files`)
+- `repo.default_arches` (global, default `["x86_64","aarch64"]`):
+  - Default arch list applied when a package does not define `arches`.
 - `repo.prebuild_skip_existing_version` (default `true`):
   - If release `repo-$arch` already has assets for the resolved package version, skip rebuilding that package.
 - `repo.same_version_rebuild_policy` (global, default `warn_skip_upload`):
@@ -97,7 +96,7 @@ Field notes:
 - `packages[].type`:
   - `aur`: clone from AUR using `aur`
   - `local`: build from local folder using `path`
-- `packages[].arches`: per-package arch control
+- `packages[].arches` (optional): per-package arch override. Omit it to use `repo.default_arches`.
 - `packages[].prebuild_skip_existing_version` (optional): per-package override for pre-build skip behavior
 - `packages[].same_version_rebuild_policy` (optional):
   - `warn_skip_upload`: warn and skip upload when same version hash changes
