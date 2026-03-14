@@ -2,7 +2,8 @@
   "repo": {
     "name": "nikarh",
     "prebuild_skip_existing_version": true,
-    "same_version_rebuild_policy": "warn_skip_upload"
+    "same_version_rebuild_policy": "warn_skip_upload",
+    "build_auto_debug_packages": false
   },
   "packages": [
     {
