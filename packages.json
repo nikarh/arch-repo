@@ -11,6 +11,14 @@
   "packages": [
     {
       "type": "aur",
+      "id": "asp",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
+    },
+    {
+      "type": "aur",
       "id": "broadcom-bt-firmware"
     },
     {
