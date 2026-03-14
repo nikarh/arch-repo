@@ -60,6 +60,7 @@ else
       }
     }
   ' "$base_makepkg_conf" > "$custom_makepkg_conf"
+  chmod 0644 "$custom_makepkg_conf"
   makepkg_cmd=(makepkg --config "$custom_makepkg_conf")
 fi
 trap '[[ -n "${custom_makepkg_conf:-}" ]] && rm -f "$custom_makepkg_conf"' EXIT
