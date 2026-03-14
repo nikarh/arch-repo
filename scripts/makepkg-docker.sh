@@ -36,6 +36,36 @@ esac
 
 mkdir -p "$out_dir"
 
+makepkg_config_setup=$(cat <<'EOS'
+makepkg_cmd=()
+if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
+  makepkg_cmd=(makepkg)
+else
+  base_makepkg_conf="/etc/makepkg.conf"
+  custom_makepkg_conf="$(mktemp)"
+  # Force-disable auto-generated debug split packages regardless of the image defaults.
+  awk '
+    BEGIN { replaced = 0 }
+    /^[[:space:]]*OPTIONS=\(/ {
+      line = $0
+      gsub(/\<debug\>/, "!debug", line)
+      print line
+      replaced = 1
+      next
+    }
+    { print }
+    END {
+      if (!replaced) {
+        print "OPTIONS=(!debug)"
+      }
+    }
+  ' "$base_makepkg_conf" > "$custom_makepkg_conf"
+  makepkg_cmd=(makepkg --config "$custom_makepkg_conf")
+fi
+trap '[[ -n "${custom_makepkg_conf:-}" ]] && rm -f "$custom_makepkg_conf"' EXIT
+EOS
+)
+
 container_script=$(cat <<'EOS'
 set -euo pipefail
 export HOME=/root
@@ -137,11 +167,7 @@ resolve_aur_deps() {
 }
 
 if [[ "$MODE" == "list" ]]; then
-  if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
-    sudo -u "$build_user" makepkg --packagelist | sed 's#^.*/##'
-  else
-    sudo -u "$build_user" env OPTIONS='(!debug)' makepkg --packagelist | sed 's#^.*/##'
-  fi
+  sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist | sed 's#^.*/##'
   exit 0
 fi
 
@@ -149,11 +175,7 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   resolve_aur_deps
 fi
 
-if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
-  sudo -u "$build_user" makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
-else
-  sudo -u "$build_user" env OPTIONS='(!debug)' makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
-fi
+sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
 
 shopt -s nullglob
 for f in ./*.pkg.tar.zst ./*.pkg.tar.xz ./*.pkg.tar.gz ./*.pkg.tar.bz2; do
@@ -164,6 +186,7 @@ for sig in ./*.pkg.tar.zst.sig ./*.pkg.tar.xz.sig ./*.pkg.tar.gz.sig ./*.pkg.tar
 done
 EOS
 )
+container_script="${container_script/cd \/src/$'cd /src\n'"$makepkg_config_setup"}"
 
 if command -v docker >/dev/null 2>&1; then
   docker run --rm \
@@ -193,13 +216,13 @@ sudo pacman -Syu --noconfirm --needed archlinux-keyring base-devel git sudo curl
 if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
   sudo pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
 fi
+eval "$makepkg_config_setup"
 
 if [[ "$mode" == "list" ]]; then
-  if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
-    bash -lc "cd '$src_dir' && makepkg --packagelist" | sed 's#^.*/##'
-  else
-    bash -lc "cd '$src_dir' && env OPTIONS='(!debug)' makepkg --packagelist" | sed 's#^.*/##'
-  fi
+  (
+    cd "$src_dir"
+    "${makepkg_cmd[@]}" --packagelist
+  ) | sed 's#^.*/##'
   exit 0
 fi
 
@@ -252,11 +275,10 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   fi
 fi
 
-if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
-  bash -lc "cd '$src_dir' && makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
-else
-  bash -lc "cd '$src_dir' && env OPTIONS='(!debug)' makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
-fi
+(
+  cd "$src_dir"
+  "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+)
 
 shopt -s nullglob
 for f in "$src_dir"/*.pkg.tar.zst "$src_dir"/*.pkg.tar.xz "$src_dir"/*.pkg.tar.gz "$src_dir"/*.pkg.tar.bz2; do
