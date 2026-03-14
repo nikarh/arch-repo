@@ -131,6 +131,22 @@
     },
     {
       "type": "aur",
+      "id": "cemu"
+    },
+    {
+      "type": "aur",
+      "id": "latvia-eid-middleware",
+      "extra_build_deps": [
+        "gtk2",
+        "openssl-1.0"
+      ]
+    },
+    {
+      "type": "aur",
+      "id": "eparakstitajs3"
+    },
+    {
+      "type": "aur",
       "id": "slack-desktop"
     },
     {

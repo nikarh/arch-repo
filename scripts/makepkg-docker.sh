@@ -103,6 +103,28 @@ chmod 0440 /etc/sudoers.d/builder-pacman
 
 cd /src
 
+pre_yay_pkgfiles="$(mktemp)"
+post_yay_pkgfiles="$(mktemp)"
+trap 'rm -f "$pre_yay_pkgfiles" "$post_yay_pkgfiles"' EXIT
+
+snapshot_yay_pkgfiles() {
+  local outfile="$1"
+  : > "$outfile"
+  local root
+  for root in "/home/$build_user/.cache/yay" "/root/.cache/yay"; do
+    [[ -d "$root" ]] || continue
+    find "$root" -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort -u >> "$outfile"
+  done
+  sort -u -o "$outfile" "$outfile"
+}
+
+copy_pkg_with_sig() {
+  local pkgfile="$1"
+  [[ -f "$pkgfile" ]] || return 0
+  cp -v "$pkgfile" /out/
+  [[ -f "$pkgfile.sig" ]] && cp -v "$pkgfile.sig" /out/
+}
+
 install_yay() {
   if command -v yay >/dev/null 2>&1; then
     return 0
@@ -167,13 +189,23 @@ resolve_aur_deps() {
     "${aur_deps[@]}"
 }
 
-if [[ "$MODE" == "list" ]]; then
-  sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist | sed 's#^.*/##'
-  exit 0
-fi
+aur_dep_pkgfiles=()
 
 if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
+  snapshot_yay_pkgfiles "$pre_yay_pkgfiles"
   resolve_aur_deps
+  snapshot_yay_pkgfiles "$post_yay_pkgfiles"
+  if [[ -s "$post_yay_pkgfiles" ]]; then
+    mapfile -t aur_dep_pkgfiles < <(comm -13 "$pre_yay_pkgfiles" "$post_yay_pkgfiles")
+  fi
+fi
+
+if [[ "$MODE" == "list" ]]; then
+  if [[ ${#aur_dep_pkgfiles[@]} -gt 0 ]]; then
+    printf '%s\n' "${aur_dep_pkgfiles[@]}" | sed 's#^.*/##'
+  fi
+  sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist | sed 's#^.*/##'
+  exit 0
 fi
 
 sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
@@ -184,6 +216,9 @@ for f in ./*.pkg.tar.zst ./*.pkg.tar.xz ./*.pkg.tar.gz ./*.pkg.tar.bz2; do
 done
 for sig in ./*.pkg.tar.zst.sig ./*.pkg.tar.xz.sig ./*.pkg.tar.gz.sig ./*.pkg.tar.bz2.sig; do
   cp -v "$sig" /out/
+done
+for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
+  copy_pkg_with_sig "$dep_pkg"
 done
 EOS
 )
@@ -219,15 +254,31 @@ if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
 fi
 eval "$makepkg_config_setup"
 
-if [[ "$mode" == "list" ]]; then
-  (
-    cd "$src_dir"
-    "${makepkg_cmd[@]}" --packagelist
-  ) | sed 's#^.*/##'
-  exit 0
-fi
+pre_yay_pkgfiles="$(mktemp)"
+post_yay_pkgfiles="$(mktemp)"
+
+snapshot_yay_pkgfiles() {
+  local outfile="$1"
+  : > "$outfile"
+  local root
+  for root in "${HOME}/.cache/yay" "/root/.cache/yay"; do
+    [[ -d "$root" ]] || continue
+    find "$root" -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort -u >> "$outfile"
+  done
+  sort -u -o "$outfile" "$outfile"
+}
+
+copy_pkg_with_sig() {
+  local pkgfile="$1"
+  [[ -f "$pkgfile" ]] || return 0
+  cp -v "$pkgfile" "$out_dir/"
+  [[ -f "$pkgfile.sig" ]] && cp -v "$pkgfile.sig" "$out_dir/"
+}
+
+aur_dep_pkgfiles=()
 
 if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
+  snapshot_yay_pkgfiles "$pre_yay_pkgfiles"
   srcinfo="$(bash -lc "cd '$src_dir' && makepkg --printsrcinfo")"
   mapfile -t dep_names < <(
     while IFS= read -r dep_line; do
@@ -274,6 +325,21 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
       --answerdiff None \
       "${aur_deps[@]}"
   fi
+  snapshot_yay_pkgfiles "$post_yay_pkgfiles"
+  if [[ -s "$post_yay_pkgfiles" ]]; then
+    mapfile -t aur_dep_pkgfiles < <(comm -13 "$pre_yay_pkgfiles" "$post_yay_pkgfiles")
+  fi
+fi
+
+if [[ "$mode" == "list" ]]; then
+  if [[ ${#aur_dep_pkgfiles[@]} -gt 0 ]]; then
+    printf '%s\n' "${aur_dep_pkgfiles[@]}" | sed 's#^.*/##'
+  fi
+  (
+    cd "$src_dir"
+    "${makepkg_cmd[@]}" --packagelist
+  ) | sed 's#^.*/##'
+  exit 0
 fi
 
 (
@@ -287,4 +353,7 @@ for f in "$src_dir"/*.pkg.tar.zst "$src_dir"/*.pkg.tar.xz "$src_dir"/*.pkg.tar.g
 done
 for sig in "$src_dir"/*.pkg.tar.zst.sig "$src_dir"/*.pkg.tar.xz.sig "$src_dir"/*.pkg.tar.gz.sig "$src_dir"/*.pkg.tar.bz2.sig; do
   cp -v "$sig" "$out_dir/"
+done
+for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
+  copy_pkg_with_sig "$dep_pkg"
 done
