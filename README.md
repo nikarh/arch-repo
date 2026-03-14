@@ -27,6 +27,13 @@ Pacman will then fetch:
 - `nikarh.files`
 - package files referenced in the db
 
+To trust this repository signing key:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nikarh/arch-repo/main/repo-signing.pub.asc | sudo pacman-key --add -
+sudo pacman-key --lsign-key BA62FFDA500B760F
+```
+
 ## Use it as a template to have your own Archlinux Repository
 
 1. Fork or clone this repository.
@@ -123,6 +130,13 @@ If you want signed repo metadata, add these repo secrets:
 - `PACMAN_GPG_PRIVATE_KEY_B64`
 - `PACMAN_GPG_KEY_ID`
 - `PACMAN_GPG_PASSPHRASE` (optional)
+
+For consumers of your repo, they can trust your public key with:
+
+```bash
+curl -fsSL <PUBLIC_KEY_URL> | sudo pacman-key --add -
+sudo pacman-key --lsign-key <KEY_ID>
+```
 
 ### GPG key generation and export
 
