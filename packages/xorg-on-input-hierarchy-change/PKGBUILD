@@ -1,0 +1,22 @@
+# Maintainer: Nikolay Arhipovs <n@arhipov.net>
+pkgname=xorg-on-input-hierarchy-change
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="Run a command when X input hierarchy changes"
+arch=('x86_64' 'aarch64')
+url="https://github.com/nikarh/dotfiles-tools/"
+license=('MIT')
+depends=('libx11' 'libxi')
+makedepends=('gcc' 'pkgconf')
+source=('xorg-on-input-hierarchy-change.c')
+sha256sums=('0df6814e5bfa6fa0303fba5a3a9186644b6ab4ba241b762f0acf36c6b95e0733')
+
+build() {
+  local x_flags
+  x_flags=$(pkg-config --cflags --libs x11 xi)
+  gcc -s -Wall -O3 -o xorg-on-input-hierarchy-change xorg-on-input-hierarchy-change.c ${x_flags}
+}
+
+package() {
+  install -Dm755 xorg-on-input-hierarchy-change "$pkgdir/usr/bin/xorg-on-input-hierarchy-change"
+}

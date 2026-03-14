@@ -1,0 +1,30 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+pkgbase=brie-bin
+pkgname=brie-bin
+pkgver=0.0.11
+pkgrel=1
+pkgdesc="A CLI toolset for running executables with Wine in isolated prefixes"
+arch=('x86_64')
+url="https://github.com/nikarh/brie"
+license=('MIT')
+makedepends=('git' 'curl' 'grep' 'awk')
+provides=("${pkgname%-bin}")
+conflicts=("${pkgname%-bin}")
+
+source=("${pkgbase%-bin}-${pkgver}-$CARCH.tar.gz::$url/releases/download/v${pkgver}/brie-$CARCH-unknown-linux-gnu-v${pkgver}.tar.gz"
+        "brie.service")
+sha256sums=('SKIP'
+            '2885d88be337d001bcc10654eb7841b02ae71940a85f35ffbf85f942d3a55efb')
+
+pkgver() {
+  curl -s https://api.github.com/repos/nikarh/brie/releases/latest | grep "tag_name" | awk -F'"' '/name/ {gsub(/v/, "", $4); print $4}'
+}
+
+package() {
+  cd "${srcdir}"
+
+  # Install the binary files to the appropriate directories
+  install -Dm755 brie "${pkgdir}/usr/bin/brie"
+  install -Dm755 briectl "${pkgdir}/usr/bin/briectl"
+  install -Dm644 brie.service -t "${pkgdir}/usr/lib/systemd/user/"
+}

@@ -1,0 +1,21 @@
+# Maintainer: Nikolay Arhipovs <n@arhipov.net>
+pkgname=micro-locker
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="A simple listerner to systemd DBUS events which runs commands"
+arch=('i686' 'x86_64')
+url="https://github.com/nikarh/dotfiles-tools/"
+license=('MIT')
+depends=(dbus)
+makedepends=(gcc)
+source=("main.c" "Makefile")
+sha256sums=('519759910771cd2e949308519a2df861c3cd05d33cfeafe7d485840a5f16b33b'
+            'f83033a6fcd360f14074a6ccbc9e162dfa586a32b0d33d3a1c0cefe8a7d9cc38')
+
+build() {
+  make
+}
+
+package() {
+  install -Dm755 $srcdir/target/micro-locker -t "$pkgdir/usr/bin/"
+}

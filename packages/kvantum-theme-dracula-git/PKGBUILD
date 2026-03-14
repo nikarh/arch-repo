@@ -1,0 +1,21 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+pkgname=kvantum-theme-dracula-git
+pkgver=r419.74255b1
+pkgrel=1
+pkgdesc="Dracula theme for Kvantum"
+arch=('any')
+url="https://github.com/dracula/gtk"
+license=('MIT')
+makedepends=('git')
+source=("git+https://github.com/dracula/gtk.git")
+md5sums=('SKIP')
+
+pkgver() {
+  cd gtk
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+  install -dm755 "${pkgdir}/usr/share/Kvantum"
+  cp -r "${srcdir}/gtk/kde/kvantum/"* "${pkgdir}/usr/share/Kvantum/"
+} 

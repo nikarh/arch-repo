@@ -12,6 +12,17 @@
   "packages": [
     {
       "type": "aur",
+      "aur": "asp"
+    },
+    {
+      "type": "aur",
+      "aur": "blktrace",
+      "arches": [
+        "x86_64"
+      ]
+    },
+    {
+      "type": "aur",
       "aur": "broadcom-bt-firmware",
       "arches": [
         "x86_64"
@@ -34,17 +45,6 @@
     {
       "type": "aur",
       "aur": "code-marketplace",
-      "arches": [
-        "x86_64"
-      ]
-    },
-    {
-      "type": "aur",
-      "aur": "asp"
-    },
-    {
-      "type": "aur",
-      "aur": "blktrace",
       "arches": [
         "x86_64"
       ]
@@ -74,7 +74,18 @@
     },
     {
       "type": "aur",
+      "aur": "dracula-icons-git"
+    },
+    {
+      "type": "aur",
       "aur": "epson-inkjet-printer-escpr"
+    },
+    {
+      "type": "aur",
+      "aur": "libva-headless",
+      "arches": [
+        "x86_64"
+      ]
     },
     {
       "type": "aur",
@@ -105,8 +116,28 @@
       ]
     },
     {
-      "type": "aur",
-      "aur": "plasma5-themes-dracula-git"
+      "type": "local",
+      "path": "packages/brie-bin"
+    },
+    {
+      "type": "local",
+      "path": "packages/kvantum-theme-dracula-git"
+    },
+    {
+      "type": "local",
+      "path": "packages/micro-locker"
+    },
+    {
+      "type": "local",
+      "path": "packages/pwtool"
+    },
+    {
+      "type": "local",
+      "path": "packages/sway-nvidia-session"
+    },
+    {
+      "type": "local",
+      "path": "packages/xorg-on-input-hierarchy-change"
     },
     {
       "type": "aur",
@@ -132,25 +163,14 @@
     },
     {
       "type": "aur",
-      "aur": "voxtype",
+      "aur": "voxtype-bin",
       "arches": [
         "x86_64"
-      ],
-      "extra_build_deps": [
-        "vulkan-icd-loader",
-        "vulkan-headers"
       ]
     },
     {
       "type": "aur",
       "aur": "yay"
-    },
-    {
-      "type": "aur",
-      "aur": "libva-headless",
-      "arches": [
-        "x86_64"
-      ]
     }
   ]
 }

@@ -1,0 +1,8 @@
+[Unit]
+Description=Watch brie config and generate shortcuts on changes
+
+[Service]
+ExecStart=/usr/bin/briectl watch
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,22 @@
+# Maintainer: Nikolay Arhipovs <n@arhipov.net>
+pkgname=pwtool
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="PipeWire audio status tool for waybar/i3status-rs"
+arch=('x86_64' 'aarch64')
+url="https://github.com/nikarh/dotfiles-tools/"
+license=('MIT')
+depends=('pipewire')
+makedepends=('gcc' 'pkgconf')
+source=('pwtool.c')
+sha256sums=('87c04e6b5e3118daec8a338db8c43a4ac96671ac683f6ab5a207732e4ebbc3d7')
+
+build() {
+  local pw_flags
+  pw_flags=$(pkg-config --cflags --libs libpipewire-0.3)
+  gcc -s -Wall -O3 -o pwtool pwtool.c ${pw_flags}
+}
+
+package() {
+  install -Dm755 pwtool "$pkgdir/usr/bin/pwtool"
+}

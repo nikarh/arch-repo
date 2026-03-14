@@ -1,0 +1,15 @@
+# Maintainer: Nikolay Arhipovs <n@arhipov.net>
+pkgname=sway-nvidia-session
+pkgver=0.0.1
+pkgrel=2
+pkgdesc="Sway desktop session with unsupported gpu enabled"
+arch=('i686' 'x86_64')
+url="https://github.com/nikarh/dotfiles/"
+license=('MIT')
+depends=(sway)
+source=("sway-nvidia.desktop")
+sha256sums=('2a9170f4e9e284bf4afaa3e017fc186f2ea1e0802ce4042217a8d8b731d02d68')
+
+package() {
+  install -Dm644 $srcdir/sway-nvidia.desktop -t "$pkgdir/usr/share/wayland-sessions/"
+}
