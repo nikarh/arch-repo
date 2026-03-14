@@ -137,7 +137,11 @@ resolve_aur_deps() {
 }
 
 if [[ "$MODE" == "list" ]]; then
-  sudo -u "$build_user" makepkg --packagelist | sed 's#^.*/##'
+  if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
+    sudo -u "$build_user" makepkg --packagelist | sed 's#^.*/##'
+  else
+    sudo -u "$build_user" env OPTIONS='(!debug)' makepkg --packagelist | sed 's#^.*/##'
+  fi
   exit 0
 fi
 
@@ -145,7 +149,11 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   resolve_aur_deps
 fi
 
-sudo -u "$build_user" makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
+  sudo -u "$build_user" makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+else
+  sudo -u "$build_user" env OPTIONS='(!debug)' makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+fi
 
 shopt -s nullglob
 for f in ./*.pkg.tar.zst ./*.pkg.tar.xz ./*.pkg.tar.gz ./*.pkg.tar.bz2; do
@@ -162,6 +170,7 @@ if command -v docker >/dev/null 2>&1; then
     --platform "$docker_platform" \
     -e MODE="$mode" \
     -e EXTRA_BUILD_DEPS="${EXTRA_BUILD_DEPS:-}" \
+    -e BUILD_AUTO_DEBUG_PACKAGES="${BUILD_AUTO_DEBUG_PACKAGES:-false}" \
     -v "$src_dir:/src" \
     -v "$out_dir:/out" \
     "$docker_image" \
@@ -186,7 +195,11 @@ if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
 fi
 
 if [[ "$mode" == "list" ]]; then
-  bash -lc "cd '$src_dir' && makepkg --packagelist" | sed 's#^.*/##'
+  if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
+    bash -lc "cd '$src_dir' && makepkg --packagelist" | sed 's#^.*/##'
+  else
+    bash -lc "cd '$src_dir' && env OPTIONS='(!debug)' makepkg --packagelist" | sed 's#^.*/##'
+  fi
   exit 0
 fi
 
@@ -239,7 +252,11 @@ if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   fi
 fi
 
-bash -lc "cd '$src_dir' && makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
+if [[ "${BUILD_AUTO_DEBUG_PACKAGES:-false}" == "true" ]]; then
+  bash -lc "cd '$src_dir' && makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
+else
+  bash -lc "cd '$src_dir' && env OPTIONS='(!debug)' makepkg --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck"
+fi
 
 shopt -s nullglob
 for f in "$src_dir"/*.pkg.tar.zst "$src_dir"/*.pkg.tar.xz "$src_dir"/*.pkg.tar.gz "$src_dir"/*.pkg.tar.bz2; do

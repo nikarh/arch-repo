@@ -55,6 +55,7 @@ retry_cmd() {
 
 global_skip_existing=$(jq -r '.repo.prebuild_skip_existing_version // true' "$config_file")
 global_same_policy=$(jq -r '.repo.same_version_rebuild_policy // "warn_skip_upload"' "$config_file")
+global_build_auto_debug=$(jq -r '.repo.build_auto_debug_packages // false' "$config_file")
 
 if [[ "$global_same_policy" != "warn_skip_upload" ]]; then
   echo "repo.same_version_rebuild_policy only supports warn_skip_upload globally" >&2
@@ -124,6 +125,7 @@ while IFS= read -r pkg; do
   pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" '.prebuild_skip_existing_version // $def' <<<"$pkg")
   pkg_same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$pkg")
   pkg_extra_build_deps=$(jq -r '(.extra_build_deps // []) | join(" ")' <<<"$pkg")
+  pkg_build_auto_debug=$(jq -r --argjson def "$global_build_auto_debug" '.build_auto_debug_packages // $def' <<<"$pkg")
   if [[ -z "$pkg_same_policy" ]]; then
     pkg_same_policy="$global_same_policy"
   fi
@@ -154,7 +156,7 @@ while IFS= read -r pkg; do
   esac
 
   list_err="$pkg_work/list.err"
-  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
     if grep -q "not available for the '${arch}' architecture" "$list_err"; then
       echo "SKIP BUILD: $pkg_id not available for arch=$arch"
       continue
@@ -164,19 +166,12 @@ while IFS= read -r pkg; do
     exit 1
   fi
   mapfile -t expected_files < <(sort -u "$pkg_work/list.out")
-  expected_non_debug=()
-  for expected in "${expected_files[@]}"; do
-    [[ -z "$expected" ]] && continue
-    if [[ "$expected" == *-debug-* ]]; then
-      continue
-    fi
-    expected_non_debug+=("$expected")
-  done
 
   should_build=1
-  if [[ "$pkg_skip_existing" == "true" && -s "$release_assets_file" && ${#expected_non_debug[@]} -gt 0 ]]; then
+  if [[ "$pkg_skip_existing" == "true" && -s "$release_assets_file" && ${#expected_files[@]} -gt 0 ]]; then
     all_found=1
-    for expected in "${expected_non_debug[@]}"; do
+    for expected in "${expected_files[@]}"; do
+      [[ -z "$expected" ]] && continue
       if ! grep -Fxq "$expected" "$release_assets_file"; then
         all_found=0
         break
@@ -192,7 +187,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)
