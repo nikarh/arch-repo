@@ -15,45 +15,27 @@
     },
     {
       "type": "aur",
-      "aur": "blktrace",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "blktrace"
     },
     {
       "type": "aur",
-      "aur": "broadcom-bt-firmware",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "broadcom-bt-firmware"
     },
     {
       "type": "aur",
-      "aur": "chromium-widevine",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "chromium-widevine"
     },
     {
       "type": "aur",
-      "aur": "code-features",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "code-features"
     },
     {
       "type": "aur",
-      "aur": "code-marketplace",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "code-marketplace"
     },
     {
       "type": "aur",
-      "aur": "cursor-bin",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "cursor-bin"
     },
     {
       "type": "aur",
@@ -85,38 +67,23 @@
     },
     {
       "type": "aur",
-      "aur": "libva-headless",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "libva-headless"
     },
     {
       "type": "aur",
-      "aur": "onlyoffice-bin",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "onlyoffice-bin"
     },
     {
       "type": "aur",
-      "aur": "openscad-bosl2-git",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "openscad-bosl2-git"
     },
     {
       "type": "aur",
-      "aur": "openscad-git",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "openscad-git"
     },
     {
       "type": "aur",
-      "aur": "orca-slicer-bin",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "orca-slicer-bin"
     },
     {
       "type": "local",
@@ -148,17 +115,11 @@
     },
     {
       "type": "aur",
-      "aur": "qdirstat",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "qdirstat"
     },
     {
       "type": "aur",
-      "aur": "slack-desktop",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "slack-desktop"
     },
     {
       "type": "aur",
@@ -170,10 +131,7 @@
     },
     {
       "type": "aur",
-      "aur": "voxtype-bin",
-      "arches": [
-        "x86_64"
-      ]
+      "aur": "voxtype-bin"
     },
     {
       "type": "aur",
