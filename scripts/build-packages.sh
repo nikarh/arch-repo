@@ -104,7 +104,7 @@ count=$(jq \
   [
     $root.packages[]
     | select((.arches // $default_arches) | index($arch))
-    | select(($selected | length) == 0 or ($selected | index(.id)))
+    | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
   ] | length
   ' "$config_file")
 if [[ "$count" -eq 0 ]]; then
@@ -124,7 +124,7 @@ jq -c \
   | ($selected_ids[0] // []) as $selected
   | $root.packages[]
   | select((.arches // $default_arches) | index($arch))
-  | select(($selected | length) == 0 or ($selected | index(.id)))
+  | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
   ' "$config_file" | \
 while IFS= read -r pkg; do
   pkg_id=$(jq -r '.id // empty' <<<"$pkg")
