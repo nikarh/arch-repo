@@ -124,12 +124,6 @@ Generate a dedicated key for repo signing:
 gpg --full-generate-key
 ```
 
-Recommended choices:
-- key type: `RSA and RSA`
-- key size: `4096`
-- expiration: your preference
-- user ID: something like `Pacman Repo Signing <you@example.com>`
-
 Get the key ID (long format):
 
 ```bash
@@ -140,12 +134,6 @@ Export secret key in base64 form for GitHub Secrets:
 
 ```bash
 gpg --export-secret-keys --armor <KEY_ID> | base64 -w0
-```
-
-If your `base64` does not support `-w0`:
-
-```bash
-gpg --export-secret-keys --armor <KEY_ID> | base64 | tr -d '\n'
 ```
 
 Set these repository secrets:
