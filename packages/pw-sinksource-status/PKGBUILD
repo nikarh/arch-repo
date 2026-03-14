@@ -9,7 +9,7 @@ license=('MIT')
 depends=('pipewire')
 makedepends=('gcc' 'pkgconf')
 source=('pw-sinksource-status.c')
-sha256sums=('87c04e6b5e3118daec8a338db8c43a4ac96671ac683f6ab5a207732e4ebbc3d7')
+sha256sums=('d44506a261785707113f4a64939c0655d5998f1af629c8a17ae94844f46a4ea6')
 
 build() {
   local pw_flags
