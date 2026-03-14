@@ -62,8 +62,7 @@ cp -a "$existing_dir"/. "$combined_dir"/ 2>/dev/null || true
 
 mapfile -t new_pkgfiles < <(find "$artifact_dir" -maxdepth 1 -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort)
 if [[ ${#new_pkgfiles[@]} -eq 0 ]]; then
-  echo "No package files to process for $arch; skipping release update"
-  exit 0
+  echo "No new package files in this run for $arch; checking for signature backfill"
 fi
 
 declare -a selected_files=()
