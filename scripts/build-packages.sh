@@ -90,12 +90,7 @@ count=$(jq \
   [
     $root.packages[]
     | select((.arches // $default_arches) | index($arch))
-    | select(
-        ($package_filter == "")
-        or (.id == $package_filter)
-        or ((.aur // "") == $package_filter)
-        or ((.path // "") == $package_filter)
-      )
+    | select(($package_filter == "") or (.id == $package_filter))
   ] | length
   ' "$config_file")
 if [[ "$count" -eq 0 ]]; then
@@ -114,17 +109,12 @@ jq -c \
   | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
   | $root.packages[]
   | select((.arches // $default_arches) | index($arch))
-  | select(
-      ($package_filter == "")
-      or (.id == $package_filter)
-      or ((.aur // "") == $package_filter)
-      or ((.path // "") == $package_filter)
-    )
+  | select(($package_filter == "") or (.id == $package_filter))
   ' "$config_file" | \
 while IFS= read -r pkg; do
-  pkg_id=$(jq -r '.id // .aur // .path // empty' <<<"$pkg")
+  pkg_id=$(jq -r '.id // empty' <<<"$pkg")
   if [[ -z "$pkg_id" ]]; then
-    echo "package entry is missing id/aur/path, cannot derive package identifier" >&2
+    echo "package entry is missing id, cannot derive package identifier" >&2
     exit 1
   fi
   pkg_type=$(jq -r '.type' <<<"$pkg")
@@ -149,15 +139,14 @@ while IFS= read -r pkg; do
 
   case "$pkg_type" in
     aur)
-      aur_name=$(jq -r '.aur' <<<"$pkg")
       clone_aur() {
         rm -rf "$src_dir"
-        git clone --depth=1 "https://aur.archlinux.org/${aur_name}.git" "$src_dir"
+        git clone --depth=1 "https://aur.archlinux.org/${pkg_id}.git" "$src_dir"
       }
-      retry_cmd "clone AUR package $aur_name" clone_aur
+      retry_cmd "clone AUR package $pkg_id" clone_aur
       ;;
     local)
-      local_path=$(jq -r '.path' <<<"$pkg")
+      local_path=$(jq -r --arg pkg_id "$pkg_id" '.path // ("packages/" + $pkg_id)' <<<"$pkg")
       cp -a "$local_path"/. "$src_dir"/
       ;;
     *)

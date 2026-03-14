@@ -11,39 +11,31 @@
   "packages": [
     {
       "type": "aur",
-      "aur": "asp"
+      "id": "broadcom-bt-firmware"
     },
     {
       "type": "aur",
-      "aur": "blktrace"
+      "id": "chromium-widevine"
     },
     {
       "type": "aur",
-      "aur": "broadcom-bt-firmware"
+      "id": "code-features"
     },
     {
       "type": "aur",
-      "aur": "chromium-widevine"
+      "id": "code-marketplace"
     },
     {
       "type": "aur",
-      "aur": "code-features"
+      "id": "cursor-bin"
     },
     {
       "type": "aur",
-      "aur": "code-marketplace"
+      "id": "dotool-git"
     },
     {
       "type": "aur",
-      "aur": "cursor-bin"
-    },
-    {
-      "type": "aur",
-      "aur": "dotool-git"
-    },
-    {
-      "type": "aur",
-      "aur": "downgrade",
+      "id": "downgrade",
       "arches": [
         "x86_64",
         "aarch64"
@@ -51,87 +43,87 @@
     },
     {
       "type": "aur",
-      "aur": "dracula-cursors-git"
+      "id": "dracula-cursors-git"
     },
     {
       "type": "aur",
-      "aur": "dracula-gtk-theme"
+      "id": "dracula-gtk-theme"
     },
     {
       "type": "aur",
-      "aur": "dracula-icons-git"
+      "id": "dracula-icons-git"
     },
     {
       "type": "aur",
-      "aur": "epson-inkjet-printer-escpr"
+      "id": "epson-inkjet-printer-escpr"
     },
     {
       "type": "aur",
-      "aur": "libva-headless"
+      "id": "libva-headless"
     },
     {
       "type": "aur",
-      "aur": "onlyoffice-bin"
+      "id": "onlyoffice-bin"
     },
     {
       "type": "aur",
-      "aur": "openscad-bosl2-git"
+      "id": "openscad-bosl2-git"
     },
     {
       "type": "aur",
-      "aur": "openscad-git"
+      "id": "openscad-git"
     },
     {
       "type": "aur",
-      "aur": "orca-slicer-bin"
+      "id": "orca-slicer-bin"
     },
     {
       "type": "local",
-      "path": "packages/brie-bin"
+      "id": "brie-bin"
     },
     {
       "type": "local",
-      "path": "packages/env-secrets-bin"
+      "id": "env-secrets-bin"
     },
     {
       "type": "local",
-      "path": "packages/kvantum-theme-dracula-git"
+      "id": "kvantum-theme-dracula-git"
     },
     {
       "type": "local",
-      "path": "packages/micro-locker"
+      "id": "micro-locker"
     },
     {
       "type": "local",
-      "path": "packages/pwtool"
+      "id": "pwtool"
     },
     {
       "type": "local",
-      "path": "packages/sway-nvidia-session"
+      "id": "sway-nvidia-session"
     },
     {
       "type": "local",
-      "path": "packages/xterm-alacritty-symlink"
+      "id": "xterm-alacritty-symlink"
     },
     {
       "type": "local",
-      "path": "packages/xorg-on-input-hierarchy-change"
+      "id": "xorg-on-input-hierarchy-change"
     },
     {
       "type": "aur",
-      "aur": "plymouth-theme-minimal-dark-git"
+      "id": "plymouth-theme-minimal-dark-git"
     },
     {
       "type": "aur",
-      "aur": "qdirstat"
+      "id": "qdirstat"
     },
     {
       "type": "aur",
-      "aur": "slack-desktop"
+      "id": "slack-desktop"
     },
     {
       "type": "aur",
-      "aur": "systemd-boot-pacman-hook",
+      "id": "systemd-boot-pacman-hook",
       "arches": [
         "x86_64",
         "aarch64"
@@ -139,11 +131,11 @@
     },
     {
       "type": "aur",
-      "aur": "voxtype-bin"
+      "id": "voxtype-bin"
     },
     {
       "type": "aur",
-      "aur": "yay",
+      "id": "yay",
       "arches": [
         "x86_64",
         "aarch64"

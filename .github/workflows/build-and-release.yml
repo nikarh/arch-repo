@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Optional package selector (.aur/.path, or legacy .id, from packages.json)'
+        description: 'Optional package id from packages.json'
         required: false
         default: ''
       publish:
