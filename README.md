@@ -43,7 +43,7 @@ sudo pacman-key --lsign-key BA62FFDA500B760F
 6. Add your own repo URL in `pacman.conf`.
 
 For faster checks, manual workflow runs support an optional `package` input.
-Set it to a package `id` from `packages.json` to build only that package.
+Set it to a package `id`, or a comma/newline separated list of package `id`s, from `packages.json` to build only those packages.
 Manual runs also support `publish` (default `true`). For bulk rebuild dispatches, set `publish=false` and run one final publish-enabled workflow at the end.
 There is also a manual workflow named `Remove Packages From Repo Releases` that accepts comma or newline separated package names and removes them from every `repo-*` release, including package assets, repo metadata, and `state.json`.
 

@@ -20,9 +20,22 @@ mkdir -p "$out_dir"
 work_root="$(mktemp -d)"
 manifest_tmp="$work_root/manifest.ndjson"
 release_assets_file="$work_root/release-assets.txt"
+selected_ids_file="$work_root/selected-ids.json"
 trap 'rm -rf "$work_root"' EXIT
 retry_count="${BUILD_RETRY_COUNT:-3}"
 retry_delay_sec="${BUILD_RETRY_DELAY_SEC:-20}"
+
+if [[ -n "$package_filter" ]]; then
+  printf '%s' "$package_filter" \
+    | tr ',\n' '\n\n' \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+    | sed '/^$/d' \
+    | sort -u \
+    | jq -R . \
+    | jq -s . > "$selected_ids_file"
+else
+  echo '[]' > "$selected_ids_file"
+fi
 
 if ! [[ "$retry_count" =~ ^[0-9]+$ ]] || (( retry_count < 1 )); then
   echo "BUILD_RETRY_COUNT must be an integer >= 1" >&2
@@ -82,15 +95,16 @@ fi
 
 count=$(jq \
   --arg arch "$arch" \
-  --arg package_filter "$package_filter" \
+  --slurpfile selected_ids "$selected_ids_file" \
   '
   . as $root
   | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
+  | ($selected_ids[0] // []) as $selected
   |
   [
     $root.packages[]
     | select((.arches // $default_arches) | index($arch))
-    | select(($package_filter == "") or (.id == $package_filter))
+    | select(($selected | length) == 0 or ($selected | index(.id)))
   ] | length
   ' "$config_file")
 if [[ "$count" -eq 0 ]]; then
@@ -103,13 +117,14 @@ fi
 
 jq -c \
   --arg arch "$arch" \
-  --arg package_filter "$package_filter" \
+  --slurpfile selected_ids "$selected_ids_file" \
   '
   . as $root
   | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
+  | ($selected_ids[0] // []) as $selected
   | $root.packages[]
   | select((.arches // $default_arches) | index($arch))
-  | select(($package_filter == "") or (.id == $package_filter))
+  | select(($selected | length) == 0 or ($selected | index(.id)))
   ' "$config_file" | \
 while IFS= read -r pkg; do
   pkg_id=$(jq -r '.id // empty' <<<"$pkg")

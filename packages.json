@@ -63,6 +63,14 @@
     },
     {
       "type": "aur",
+      "id": "it87-dkms-git"
+    },
+    {
+      "type": "aur",
+      "id": "joystickwake"
+    },
+    {
+      "type": "aur",
       "id": "onlyoffice-bin"
     },
     {
@@ -119,7 +127,15 @@
     },
     {
       "type": "aur",
+      "id": "quickemu-git"
+    },
+    {
+      "type": "aur",
       "id": "slack-desktop"
+    },
+    {
+      "type": "aur",
+      "id": "orca-slicer-unstable-bin"
     },
     {
       "type": "aur",
@@ -132,6 +148,10 @@
     {
       "type": "aur",
       "id": "voxtype-bin"
+    },
+    {
+      "type": "aur",
+      "id": "xpadneo-dkms"
     },
     {
       "type": "aur",

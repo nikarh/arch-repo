@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Optional package id from packages.json'
+        description: 'Optional package id, or comma/newline separated package ids, from packages.json'
         required: false
         default: ''
       publish:
