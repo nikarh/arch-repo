@@ -91,6 +91,10 @@
     },
     {
       "type": "local",
+      "path": "packages/env-secrets-bin"
+    },
+    {
+      "type": "local",
       "path": "packages/kvantum-theme-dracula-git"
     },
     {
