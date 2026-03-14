@@ -128,9 +128,9 @@ for pkgpath in "${new_pkgfiles[@]}"; do
   fi
 done
 
-if [[ ${#selected_files[@]} -eq 0 ]]; then
-  echo "No selected package updates for $arch; skipping release update"
-  exit 0
+has_selected_updates=0
+if [[ ${#selected_files[@]} -gt 0 ]]; then
+  has_selected_updates=1
 fi
 
 repo_script=$(cat <<'EOS'
@@ -159,18 +159,21 @@ repo-add "$repo_dir/${repo_name}.db.tar.gz" "${real_pkg_files[@]}"
 EOS
 )
 
-docker run --rm \
-  -e REPO_NAME="$repo_name" \
-  -v "$combined_dir:/repo" \
-  archlinux:base-devel \
-  /bin/bash -lc "$repo_script"
+upload_list=()
+if [[ "$has_selected_updates" -eq 1 ]]; then
+  docker run --rm \
+    -e REPO_NAME="$repo_name" \
+    -v "$combined_dir:/repo" \
+    archlinux:base-devel \
+    /bin/bash -lc "$repo_script"
 
-upload_list=(
-  "$combined_dir/${repo_name}.db.tar.gz"
-  "$combined_dir/${repo_name}.db"
-  "$combined_dir/${repo_name}.files.tar.gz"
-  "$combined_dir/${repo_name}.files"
-)
+  upload_list+=(
+    "$combined_dir/${repo_name}.db.tar.gz"
+    "$combined_dir/${repo_name}.db"
+    "$combined_dir/${repo_name}.files.tar.gz"
+    "$combined_dir/${repo_name}.files"
+  )
+fi
 
 if [[ -n "${GPG_PRIVATE_KEY_B64:-}" && -n "${GPG_KEY_ID:-}" ]]; then
   gpg_home="$tmp_root/gnupg"
@@ -180,23 +183,40 @@ if [[ -n "${GPG_PRIVATE_KEY_B64:-}" && -n "${GPG_KEY_ID:-}" ]]; then
 
   echo "$GPG_PRIVATE_KEY_B64" | base64 -d | gpg --batch --import
 
-  sign_targets=(
-    "$combined_dir/${repo_name}.db.tar.gz"
-    "$combined_dir/${repo_name}.db"
-    "$combined_dir/${repo_name}.files.tar.gz"
-    "$combined_dir/${repo_name}.files"
-  )
+  if [[ "$has_selected_updates" -eq 1 ]]; then
+    sign_targets=(
+      "$combined_dir/${repo_name}.db.tar.gz"
+      "$combined_dir/${repo_name}.db"
+      "$combined_dir/${repo_name}.files.tar.gz"
+      "$combined_dir/${repo_name}.files"
+    )
 
-  for target in "${sign_targets[@]}"; do
-    gpg --batch --yes --pinentry-mode loopback \
-      --passphrase "${GPG_PASSPHRASE:-}" \
-      --local-user "$GPG_KEY_ID" \
-      --detach-sign --armor "$target"
-    upload_list+=("$target.asc")
+    for target in "${sign_targets[@]}"; do
+      gpg --batch --yes --pinentry-mode loopback \
+        --passphrase "${GPG_PASSPHRASE:-}" \
+        --local-user "$GPG_KEY_ID" \
+        --detach-sign --armor "$target"
+      upload_list+=("$target.asc")
+    done
+  fi
+
+  # Backfill missing package signatures for existing and newly selected packages.
+  shopt -s nullglob
+  for pkg in "$combined_dir"/*.pkg.tar.*; do
+    [[ "$pkg" == *.sig ]] && continue
+    if [[ ! -f "$pkg.sig" ]]; then
+      gpg --batch --yes --pinentry-mode loopback \
+        --passphrase "${GPG_PASSPHRASE:-}" \
+        --local-user "$GPG_KEY_ID" \
+        --detach-sign "$pkg"
+      upload_list+=("$pkg.sig")
+    fi
   done
 fi
 
-upload_list+=("$state_file")
+if [[ "$has_selected_updates" -eq 1 ]]; then
+  upload_list+=("$state_file")
+fi
 
 for selected in "${selected_files[@]}"; do
   upload_list+=("$selected_dir/$selected")
@@ -204,6 +224,11 @@ done
 
 # Deduplicate upload paths.
 mapfile -t upload_list < <(printf '%s\n' "${upload_list[@]}" | sed '/^$/d' | sort -u)
+
+if [[ ${#upload_list[@]} -eq 0 ]]; then
+  echo "No selected package updates and no missing signatures for $arch; skipping release update"
+  exit 0
+fi
 
 if [[ ${#upload_list[@]} -gt 0 ]]; then
   gh release upload "$release_tag" --clobber "${upload_list[@]}"
