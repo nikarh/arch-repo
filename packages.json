@@ -5,8 +5,7 @@
     "same_version_rebuild_policy": "warn_skip_upload",
     "build_auto_debug_packages": false,
     "default_arches": [
-      "x86_64",
-      "aarch64"
+      "x86_64"
     ]
   },
   "packages": [
@@ -62,7 +61,11 @@
     },
     {
       "type": "aur",
-      "aur": "downgrade"
+      "aur": "downgrade",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
     },
     {
       "type": "aur",
@@ -159,7 +162,11 @@
     },
     {
       "type": "aur",
-      "aur": "systemd-boot-pacman-hook"
+      "aur": "systemd-boot-pacman-hook",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
     },
     {
       "type": "aur",
@@ -170,7 +177,11 @@
     },
     {
       "type": "aur",
-      "aur": "yay"
+      "aur": "yay",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
     }
   ]
 }

@@ -18,7 +18,6 @@ To use this repo from `pacman`, add this to `/etc/pacman.conf`:
 
 ```ini
 [nikarh]
-SigLevel = Optional TrustAll
 Server = https://github.com/nikarh/arch-repo/releases/download/repo-$arch
 ```
 
@@ -56,7 +55,7 @@ Manual runs also support `publish` (default `true`). For bulk rebuild dispatches
     "prebuild_skip_existing_version": true,
     "same_version_rebuild_policy": "warn_skip_upload",
     "build_auto_debug_packages": false,
-    "default_arches": ["x86_64", "aarch64"]
+    "default_arches": ["x86_64"]
   },
   "packages": [
     {
@@ -83,7 +82,7 @@ Manual runs also support `publish` (default `true`). For bulk rebuild dispatches
 
 Field notes:
 - `repo.name`: pacman repo name (`<name>.db`, `<name>.files`)
-- `repo.default_arches` (global, default `["x86_64","aarch64"]`):
+- `repo.default_arches` (global, default `["x86_64"]`):
   - Default arch list applied when a package does not define `arches`.
 - `repo.prebuild_skip_existing_version` (default `true`):
   - If release `repo-$arch` already has assets for the resolved package version, skip rebuilding that package.
