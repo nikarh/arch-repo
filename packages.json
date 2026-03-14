@@ -3,153 +3,154 @@
     "name": "nikarh",
     "prebuild_skip_existing_version": true,
     "same_version_rebuild_policy": "warn_skip_upload",
-    "build_auto_debug_packages": false
+    "build_auto_debug_packages": false,
+    "default_arches": [
+      "x86_64",
+      "aarch64"
+    ]
   },
   "packages": [
     {
-      "id": "broadcom-bt-firmware",
       "type": "aur",
       "aur": "broadcom-bt-firmware",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "chromium-widevine",
       "type": "aur",
       "aur": "chromium-widevine",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "code-features",
       "type": "aur",
       "aur": "code-features",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "code-marketplace",
       "type": "aur",
       "aur": "code-marketplace",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "asp",
       "type": "aur",
-      "aur": "asp",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "asp"
     },
     {
-      "id": "blktrace",
       "type": "aur",
       "aur": "blktrace",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "cursor-bin",
       "type": "aur",
       "aur": "cursor-bin",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "dotool-git",
       "type": "aur",
-      "aur": "dotool-git",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "dotool-git"
     },
     {
-      "id": "downgrade",
       "type": "aur",
-      "aur": "downgrade",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "downgrade"
     },
     {
-      "id": "dracula-cursors-git",
       "type": "aur",
-      "aur": "dracula-cursors-git",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "dracula-cursors-git"
     },
     {
-      "id": "dracula-gtk-theme",
       "type": "aur",
-      "aur": "dracula-gtk-theme",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "dracula-gtk-theme"
     },
     {
-      "id": "epson-inkjet-printer-escpr",
       "type": "aur",
-      "aur": "epson-inkjet-printer-escpr",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "epson-inkjet-printer-escpr"
     },
     {
-      "id": "onlyoffice-bin",
       "type": "aur",
       "aur": "onlyoffice-bin",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "openscad-bosl2-git",
       "type": "aur",
       "aur": "openscad-bosl2-git",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "openscad-git",
       "type": "aur",
       "aur": "openscad-git",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "orca-slicer-bin",
       "type": "aur",
       "aur": "orca-slicer-bin",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "plasma5-themes-dracula-git",
       "type": "aur",
-      "aur": "plasma5-themes-dracula-git",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "plasma5-themes-dracula-git"
     },
     {
-      "id": "plymouth-theme-minimal-dark-git",
       "type": "aur",
-      "aur": "plymouth-theme-minimal-dark-git",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "plymouth-theme-minimal-dark-git"
     },
     {
-      "id": "qdirstat",
       "type": "aur",
       "aur": "qdirstat",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "slack-desktop",
       "type": "aur",
       "aur": "slack-desktop",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     },
     {
-      "id": "systemd-boot-pacman-hook",
       "type": "aur",
-      "aur": "systemd-boot-pacman-hook",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "systemd-boot-pacman-hook"
     },
     {
-      "id": "voxtype",
       "type": "aur",
       "aur": "voxtype",
-      "arches": ["x86_64"],
-      "extra_build_deps": ["vulkan-icd-loader", "vulkan-headers"]
+      "arches": [
+        "x86_64"
+      ],
+      "extra_build_deps": [
+        "vulkan-icd-loader",
+        "vulkan-headers"
+      ]
     },
     {
-      "id": "yay",
       "type": "aur",
-      "aur": "yay",
-      "arches": ["x86_64", "aarch64"]
+      "aur": "yay"
     },
     {
-      "id": "libva-headless",
       "type": "aur",
       "aur": "libva-headless",
-      "arches": ["x86_64"]
+      "arches": [
+        "x86_64"
+      ]
     }
   ]
 }

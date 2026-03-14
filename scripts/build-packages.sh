@@ -84,13 +84,17 @@ count=$(jq \
   --arg arch "$arch" \
   --arg package_filter "$package_filter" \
   '
+  . as $root
+  | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
+  |
   [
-    .packages[]
-    | select((.arches // ["x86_64","aarch64"]) | index($arch))
+    $root.packages[]
+    | select((.arches // $default_arches) | index($arch))
     | select(
         ($package_filter == "")
         or (.id == $package_filter)
         or ((.aur // "") == $package_filter)
+        or ((.path // "") == $package_filter)
       )
   ] | length
   ' "$config_file")
@@ -106,16 +110,23 @@ jq -c \
   --arg arch "$arch" \
   --arg package_filter "$package_filter" \
   '
-  .packages[]
-  | select((.arches // ["x86_64","aarch64"]) | index($arch))
+  . as $root
+  | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
+  | $root.packages[]
+  | select((.arches // $default_arches) | index($arch))
   | select(
       ($package_filter == "")
       or (.id == $package_filter)
       or ((.aur // "") == $package_filter)
+      or ((.path // "") == $package_filter)
     )
   ' "$config_file" | \
 while IFS= read -r pkg; do
-  pkg_id=$(jq -r '.id' <<<"$pkg")
+  pkg_id=$(jq -r '.id // .aur // .path // empty' <<<"$pkg")
+  if [[ -z "$pkg_id" ]]; then
+    echo "package entry is missing id/aur/path, cannot derive package identifier" >&2
+    exit 1
+  fi
   pkg_type=$(jq -r '.type' <<<"$pkg")
   pkg_work="$work_root/$pkg_id"
   src_dir="$pkg_work/src"

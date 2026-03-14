@@ -9,7 +9,7 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-mapfile -t packages < <(jq -r '.packages[].id' packages.json | sort -u)
+mapfile -t packages < <(jq -r '.packages[] | .aur // .path // .id // empty' packages.json | sed '/^$/d' | sort -u)
 if [[ ${#packages[@]} -eq 0 ]]; then
   echo "No packages found in packages.json" >&2
   exit 1
@@ -25,4 +25,3 @@ if [[ "$trigger_final_publish" == "1" ]]; then
   echo "Dispatching final publish run (full config, publish=true)"
   gh workflow run build-and-release.yml -R "$repo" -f publish=true
 fi
-
