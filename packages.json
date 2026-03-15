@@ -163,6 +163,10 @@
     },
     {
       "type": "aur",
+      "id": "sunshine"
+    },
+    {
+      "type": "aur",
       "id": "orca-slicer-unstable-bin"
     },
     {
