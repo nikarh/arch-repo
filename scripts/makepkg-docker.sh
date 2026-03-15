@@ -11,6 +11,10 @@ src_dir="$(realpath "$2")"
 out_dir="$(realpath -m "$3")"
 mode="${4:-build}"
 sim_root="${MAKEPKG_DOCKER_SIM_ROOT:-}"
+shared_artifact_dir="${MAKEPKG_SHARED_ARTIFACT_DIR:-}"
+if [[ -n "$shared_artifact_dir" ]]; then
+  shared_artifact_dir="$(realpath -m "$shared_artifact_dir")"
+fi
 
 case "$arch" in
   x86_64)
@@ -356,9 +360,40 @@ list_aur_dep_pkgfiles() {
   rm -rf "$dep_root"
 }
 
+shared_has_all_pkgfiles() {
+  local dep_id="$1"
+  local pkgfile basename
+  [[ -n "${SHARED_ARTIFACT_DIR:-}" && -d "${SHARED_ARTIFACT_DIR:-}" ]] || return 1
+  while IFS= read -r pkgfile; do
+    basename="$(basename "$pkgfile")"
+    [[ -f "$SHARED_ARTIFACT_DIR/$basename" ]] || return 1
+  done < <(list_aur_dep_pkgfiles "$dep_id")
+}
+
+install_and_copy_shared_dep_pkgfiles() {
+  local dep_id="$1"
+  local pkgfile basename
+  local -a shared_pkgs=()
+  while IFS= read -r pkgfile; do
+    basename="$(basename "$pkgfile")"
+    [[ -f "$SHARED_ARTIFACT_DIR/$basename" ]] || continue
+    shared_pkgs+=("$SHARED_ARTIFACT_DIR/$basename")
+    copy_pkg_with_sig "$SHARED_ARTIFACT_DIR/$basename"
+  done < <(list_aur_dep_pkgfiles "$dep_id")
+  if [[ ${#shared_pkgs[@]} -gt 0 ]]; then
+    pacman -U --noconfirm "${shared_pkgs[@]}" >/dev/null
+  fi
+}
+
 build_and_install_aur_dep() {
   local dep_id="$1"
   local dep_root dep_src built_pkg
+
+  if shared_has_all_pkgfiles "$dep_id"; then
+    install_and_copy_shared_dep_pkgfiles "$dep_id"
+    return 0
+  fi
+
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
   chown "$host_uid:$host_gid" "$dep_root"
@@ -432,15 +467,19 @@ EOS
 container_script="${container_script/cd \/src/$'cd /src\n'"$makepkg_config_setup"}"
 
 if command -v docker >/dev/null 2>&1; then
-  docker run --rm \
-    --platform "$docker_platform" \
-    -e MODE="$mode" \
-    -e EXTRA_BUILD_DEPS="${EXTRA_BUILD_DEPS:-}" \
-    -e BUILD_AUTO_DEBUG_PACKAGES="${BUILD_AUTO_DEBUG_PACKAGES:-false}" \
-    -v "$src_dir:/src" \
-    -v "$out_dir:/out" \
-    "$docker_image" \
-    /bin/bash -lc "$container_script"
+  docker_args=(
+    run --rm
+    --platform "$docker_platform"
+    -e MODE="$mode"
+    -e EXTRA_BUILD_DEPS="${EXTRA_BUILD_DEPS:-}"
+    -e BUILD_AUTO_DEBUG_PACKAGES="${BUILD_AUTO_DEBUG_PACKAGES:-false}"
+    -v "$src_dir:/src"
+    -v "$out_dir:/out"
+  )
+  if [[ -n "$shared_artifact_dir" ]]; then
+    docker_args+=(-e SHARED_ARTIFACT_DIR=/shared-artifacts -v "$shared_artifact_dir:/shared-artifacts")
+  fi
+  docker "${docker_args[@]}" "$docker_image" /bin/bash -lc "$container_script"
   exit 0
 fi
 
@@ -622,9 +661,40 @@ list_aur_dep_pkgfiles() {
   rm -rf "$dep_root"
 }
 
+shared_has_all_pkgfiles() {
+  local dep_id="$1"
+  local pkgfile basename
+  [[ -n "$shared_artifact_dir" && -d "$shared_artifact_dir" ]] || return 1
+  while IFS= read -r pkgfile; do
+    basename="$(basename "$pkgfile")"
+    [[ -f "$shared_artifact_dir/$basename" ]] || return 1
+  done < <(list_aur_dep_pkgfiles "$dep_id")
+}
+
+install_and_copy_shared_dep_pkgfiles() {
+  local dep_id="$1"
+  local pkgfile basename
+  local -a shared_pkgs=()
+  while IFS= read -r pkgfile; do
+    basename="$(basename "$pkgfile")"
+    [[ -f "$shared_artifact_dir/$basename" ]] || continue
+    shared_pkgs+=("$shared_artifact_dir/$basename")
+    copy_pkg_with_sig "$shared_artifact_dir/$basename"
+  done < <(list_aur_dep_pkgfiles "$dep_id")
+  if [[ ${#shared_pkgs[@]} -gt 0 ]]; then
+    sudo pacman -U --noconfirm "${shared_pkgs[@]}" >/dev/null
+  fi
+}
+
 build_and_install_aur_dep() {
   local dep_id="$1"
   local dep_root dep_src built_pkg
+
+  if shared_has_all_pkgfiles "$dep_id"; then
+    install_and_copy_shared_dep_pkgfiles "$dep_id"
+    return 0
+  fi
+
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
 

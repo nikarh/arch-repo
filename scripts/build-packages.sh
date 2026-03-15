@@ -18,6 +18,7 @@ if [[ ! -f "$config_file" ]]; then
 fi
 
 mkdir -p "$out_dir"
+shared_artifact_dir="$out_dir"
 work_root="$(mktemp -d)"
 manifest_tmp="$work_root/manifest.ndjson"
 release_assets_file="$work_root/release-assets.txt"
@@ -161,7 +162,7 @@ while IFS= read -r pkg; do
   esac
 
   list_err="$pkg_work/list.err"
-  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
     if grep -q "not available for the '${arch}' architecture" "$list_err"; then
       echo "SKIP BUILD: $pkg_id not available for arch=$arch"
       continue
@@ -192,7 +193,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)
@@ -211,8 +212,10 @@ while IFS= read -r pkg; do
     fi
 
     cp "$pkgfile" "$out_dir/$filename"
+    printf '%s\n' "$filename" >> "$release_assets_file"
     if [[ -f "$pkgfile.sig" ]]; then
       cp "$pkgfile.sig" "$out_dir/$filename.sig"
+      printf '%s\n' "$filename.sig" >> "$release_assets_file"
     fi
 
     pkgname="${BASH_REMATCH[1]}"
@@ -232,6 +235,7 @@ while IFS= read -r pkg; do
       --arg same_version_rebuild_policy "$pkg_same_policy" \
       '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy}' >> "$manifest_tmp"
   done
+  sort -u -o "$release_assets_file" "$release_assets_file"
 done < <(
   jq -c \
     --arg arch "$arch" \

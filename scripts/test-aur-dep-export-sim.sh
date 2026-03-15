@@ -9,6 +9,7 @@ pkg_root="$tmp_root/rootpkg"
 sim_root="$tmp_root/sim"
 out_root="$tmp_root/out"
 config_file="$tmp_root/packages.json"
+config_with_explicit_dep="$tmp_root/packages-with-explicit-dep.json"
 
 mkdir -p "$pkg_root/.codex-artifacts" "$sim_root/dep-a/artifacts" "$sim_root/dep-b/artifacts" "$out_root"
 
@@ -90,3 +91,37 @@ jq -e '
 ' "$out_root/manifest.json" >/dev/null
 
 echo "simulation ok"
+
+cat > "$config_with_explicit_dep" <<JSON
+{
+  "repo": {
+    "default_arches": ["x86_64"]
+  },
+  "packages": [
+    {
+      "type": "local",
+      "id": "rootpkg",
+      "path": "$pkg_root"
+    },
+    {
+      "type": "local",
+      "id": "dep-b",
+      "path": "$pkg_root"
+    }
+  ]
+}
+JSON
+
+dup_out_root="$tmp_root/out-dup"
+dup_log="$tmp_root/dup.log"
+
+(
+  cd "$repo_root"
+  MAKEPKG_DOCKER_SIM_ROOT="$sim_root" \
+  PACKAGES_CONFIG_FILE="$config_with_explicit_dep" \
+  scripts/build-packages.sh x86_64 "$dup_out_root" "rootpkg,dep-b"
+) | tee "$dup_log"
+
+grep -F "SKIP BUILD: dep-b already has version assets in repo-x86_64" "$dup_log" >/dev/null
+
+echo "dedupe ok"
