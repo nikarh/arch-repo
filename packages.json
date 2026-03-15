@@ -143,6 +143,14 @@
     },
     {
       "type": "aur",
+      "id": "gtk2"
+    },
+    {
+      "type": "aur",
+      "id": "openssl-1.0"
+    },
+    {
+      "type": "aur",
       "id": "latvia-eid-middleware"
     },
     {
