@@ -9,7 +9,8 @@ fi
 arch="$1"
 out_dir="$(realpath -m "$2")"
 package_filter="${3:-${PACKAGE_FILTER:-}}"
-config_file="packages.json"
+config_file="${PACKAGES_CONFIG_FILE:-packages.json}"
+makepkg_runner="${MAKEPKG_DOCKER_BIN:-$PWD/scripts/makepkg-docker.sh}"
 
 if [[ ! -f "$config_file" ]]; then
   echo "missing $config_file" >&2
@@ -160,7 +161,7 @@ while IFS= read -r pkg; do
   esac
 
   list_err="$pkg_work/list.err"
-  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
     if grep -q "not available for the '${arch}' architecture" "$list_err"; then
       echo "SKIP BUILD: $pkg_id not available for arch=$arch"
       continue
@@ -191,7 +192,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$PWD/scripts/makepkg-docker.sh" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)

@@ -10,6 +10,7 @@ arch="$1"
 src_dir="$(realpath "$2")"
 out_dir="$(realpath -m "$3")"
 mode="${4:-build}"
+sim_root="${MAKEPKG_DOCKER_SIM_ROOT:-}"
 
 case "$arch" in
   x86_64)
@@ -35,6 +36,109 @@ case "$mode" in
 esac
 
 mkdir -p "$out_dir"
+
+if [[ -n "$sim_root" ]]; then
+  normalize_dep_name() {
+    local dep_name="$1"
+    dep_name="${dep_name%%[<>=]*}"
+    dep_name="${dep_name%%:*}"
+    dep_name="${dep_name//[[:space:]]/}"
+    [[ -z "$dep_name" ]] && return 1
+    [[ "$dep_name" == *".so"* || "$dep_name" == */* ]] && return 1
+    printf '%s\n' "$dep_name"
+  }
+
+  parse_srcinfo_deps_from_file() {
+    local srcinfo_file="$1"
+    local dep_line dep_name
+    while IFS= read -r dep_line; do
+      dep_line="${dep_line#"${dep_line%%[![:space:]]*}"}"
+      case "$dep_line" in
+        "depends = "*|"makedepends = "*|"checkdepends = "*)
+          dep_name="${dep_line#*= }"
+          normalize_dep_name "$dep_name" || true
+          ;;
+      esac
+    done < "$srcinfo_file" | awk '!seen[$0]++'
+  }
+
+  resolve_sim_aur_dep_closure() {
+    local root_srcinfo="$1"
+    local visited_file ordered_file
+    visited_file="$(mktemp)"
+    ordered_file="$(mktemp)"
+    trap 'rm -f "$visited_file" "$ordered_file"' RETURN
+
+    resolve_sim_dep_recursive() {
+      local pkgname="$1"
+      local dep_name dep_srcinfo
+      dep_srcinfo="$sim_root/$pkgname/srcinfo"
+      [[ -f "$dep_srcinfo" ]] || return 0
+
+      if grep -Fxq "$pkgname" "$visited_file" 2>/dev/null; then
+        return 0
+      fi
+      printf '%s\n' "$pkgname" >> "$visited_file"
+
+      while IFS= read -r dep_name; do
+        [[ -z "$dep_name" ]] && continue
+        [[ -f "$sim_root/$dep_name/srcinfo" ]] || continue
+        resolve_sim_dep_recursive "$dep_name"
+      done < <(parse_srcinfo_deps_from_file "$dep_srcinfo")
+
+      printf '%s\n' "$pkgname" >> "$ordered_file"
+    }
+
+    while IFS= read -r dep_name; do
+      [[ -z "$dep_name" ]] && continue
+      [[ -f "$sim_root/$dep_name/srcinfo" ]] || continue
+      resolve_sim_dep_recursive "$dep_name"
+    done < <(parse_srcinfo_deps_from_file "$root_srcinfo")
+
+    awk '!seen[$0]++' "$ordered_file"
+  }
+
+  sim_copy_artifacts_for_pkg() {
+    local pkgname="$1"
+    local artifact
+    shopt -s nullglob
+    for artifact in "$sim_root/$pkgname/artifacts"/*; do
+      cp -v "$artifact" "$out_dir/"
+    done
+  }
+
+  sim_emit_packagelist_for_pkg() {
+    local pkgname="$1"
+    cat "$sim_root/$pkgname/packagelist.txt"
+  }
+
+  root_srcinfo="$src_dir/.codex-srcinfo"
+  if [[ ! -f "$root_srcinfo" ]]; then
+    echo "simulation mode requires $src_dir/.codex-srcinfo" >&2
+    exit 1
+  fi
+
+  mapfile -t sim_dep_ids < <(resolve_sim_aur_dep_closure "$root_srcinfo")
+  if [[ "$mode" == "list" ]]; then
+    for dep_id in "${sim_dep_ids[@]}"; do
+      sim_emit_packagelist_for_pkg "$dep_id"
+    done
+    cat "$src_dir/.codex-packagelist"
+    exit 0
+  fi
+
+  for dep_id in "${sim_dep_ids[@]}"; do
+    sim_copy_artifacts_for_pkg "$dep_id"
+  done
+  local_artifact_dir="$src_dir/.codex-artifacts"
+  if [[ -d "$local_artifact_dir" ]]; then
+    shopt -s nullglob
+    for artifact in "$local_artifact_dir"/*; do
+      cp -v "$artifact" "$out_dir/"
+    done
+  fi
+  exit 0
+fi
 
 makepkg_config_setup=$(cat <<'EOS'
 makepkg_cmd=()
@@ -229,31 +333,33 @@ resolve_aur_dep_closure() {
     fi
   done < "$deps_file"
 
-  sort -u "$ordered_file"
+  awk '!seen[$0]++' "$ordered_file"
   rm -f "$deps_file" "$visited_file" "$ordered_file"
 }
 
-find_cache_pkgfiles_for_ids() {
-  local ids_file="$1"
-  local pkgfile pkgname
-  [[ -s "$ids_file" ]] || return 0
-  while IFS= read -r pkgfile; do
-    [[ -f "$pkgfile" ]] || continue
-    pkgname="$(pkgfile_name_to_pkgname "$pkgfile" || true)"
-    [[ -z "$pkgname" ]] && continue
-    if grep -Fxq "$pkgname" "$ids_file"; then
-      printf '%s\n' "$pkgfile"
-    fi
-  done < "$post_yay_pkgfiles" | sort -u
+aur_pkgfile_patterns() {
+  printf '%s\n' "*.pkg.tar.zst" "*.pkg.tar.xz" "*.pkg.tar.gz" "*.pkg.tar.bz2"
 }
 
-build_missing_aur_dep() {
+list_aur_dep_pkgfiles() {
   local dep_id="$1"
-  local dep_root dep_src dep_out
+  local dep_root dep_src dep_pkgfile
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
-  dep_out="$dep_root/out"
-  mkdir -p "$dep_out"
+
+  sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
+  (
+    cd "$dep_src"
+    sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist
+  )
+  rm -rf "$dep_root"
+}
+
+build_and_install_aur_dep() {
+  local dep_id="$1"
+  local dep_root dep_src built_pkg
+  dep_root="$(mktemp -d)"
+  dep_src="$dep_root/src"
 
   sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
   (
@@ -261,25 +367,17 @@ build_missing_aur_dep() {
     sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
   )
 
-  local built_pkg built_pkgname
+  local -a built_pkgs=()
   shopt -s nullglob
   for built_pkg in "$dep_src"/*.pkg.tar.zst "$dep_src"/*.pkg.tar.xz "$dep_src"/*.pkg.tar.gz "$dep_src"/*.pkg.tar.bz2; do
-    built_pkgname="$(pkgfile_name_to_pkgname "$built_pkg" || true)"
-    [[ -z "$built_pkgname" ]] && continue
+    [[ -f "$built_pkg" ]] || continue
+    built_pkgs+=("$built_pkg")
     copy_pkg_with_sig "$built_pkg"
   done
+  if [[ ${#built_pkgs[@]} -gt 0 ]]; then
+    pacman -U --noconfirm "${built_pkgs[@]}" >/dev/null
+  fi
   rm -rf "$dep_root"
-}
-
-write_matched_aur_dep_ids() {
-  : > "$matched_aur_dep_ids_file"
-  local dep_pkg dep_pkgname
-  for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
-    dep_pkgname="$(pkgfile_name_to_pkgname "$dep_pkg" || true)"
-    [[ -z "$dep_pkgname" ]] && continue
-    printf '%s\n' "$dep_pkgname" >> "$matched_aur_dep_ids_file"
-  done
-  sort -u -o "$matched_aur_dep_ids_file" "$matched_aur_dep_ids_file"
 }
 
 install_yay() {
@@ -300,56 +398,23 @@ install_yay() {
 }
 
 srcinfo="$(sudo -u "$build_user" makepkg --printsrcinfo)"
-aur_dep_pkgfiles=()
 aur_dep_ids=()
 
 if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
   mapfile -t aur_dep_ids < <(resolve_aur_dep_closure "$srcinfo")
-  if [[ ${#aur_dep_ids[@]} -gt 0 ]]; then
-    printf '%s\n' "${aur_dep_ids[@]}" > "$aur_dep_ids_file"
-  fi
-
-  snapshot_yay_pkgfiles "$pre_yay_pkgfiles"
-  if [[ ${#aur_dep_ids[@]} -gt 0 ]]; then
-    install_yay
-    sudo -u "$build_user" yay -S --noconfirm --needed --asdeps \
-      --mflags "--noconfirm --needed --skippgpcheck" \
-      --answerclean None \
-      --answerdiff None \
-      "${aur_dep_ids[@]}"
-  fi
-  snapshot_yay_pkgfiles "$post_yay_pkgfiles"
-  if [[ -s "$aur_dep_ids_file" && -s "$post_yay_pkgfiles" ]]; then
-    mapfile -t aur_dep_pkgfiles < <(find_cache_pkgfiles_for_ids "$aur_dep_ids_file")
-  fi
-  write_matched_aur_dep_ids
 fi
 
 if [[ "$MODE" == "list" ]]; then
-  if [[ ${#aur_dep_pkgfiles[@]} -gt 0 ]]; then
-    printf '%s\n' "${aur_dep_pkgfiles[@]}" | sed 's#^.*/##'
-  fi
-  if [[ -s "$aur_dep_ids_file" ]]; then
-    dep_tmp=""
-    while IFS= read -r dep_id; do
-      [[ -z "$dep_id" ]] && continue
-      if grep -Fxq "$dep_id" "$matched_aur_dep_ids_file"; then
-        continue
-      fi
-      dep_tmp="$(mktemp -d)"
-      sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_tmp/src"
-      (
-        cd "$dep_tmp/src"
-        sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist
-      ) | sed 's#^.*/##'
-      rm -rf "$dep_tmp"
-      dep_tmp=""
-    done < "$aur_dep_ids_file"
-    [[ -n "$dep_tmp" ]] && rm -rf "$dep_tmp"
-  fi
+  for dep_id in "${aur_dep_ids[@]}"; do
+    list_aur_dep_pkgfiles "$dep_id" | sed 's#^.*/##'
+  done
   sudo -u "$build_user" "${makepkg_cmd[@]}" --packagelist | sed 's#^.*/##'
   exit 0
 fi
+
+for dep_id in "${aur_dep_ids[@]}"; do
+  build_and_install_aur_dep "$dep_id"
+done
 
 sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
 
@@ -360,19 +425,6 @@ done
 for sig in ./*.pkg.tar.zst.sig ./*.pkg.tar.xz.sig ./*.pkg.tar.gz.sig ./*.pkg.tar.bz2.sig; do
   cp -v "$sig" /out/
 done
-for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
-  copy_pkg_with_sig "$dep_pkg"
-done
-
-if [[ -s "$aur_dep_ids_file" ]]; then
-  while IFS= read -r dep_id; do
-    [[ -z "$dep_id" ]] && continue
-    if grep -Fxq "$dep_id" "$matched_aur_dep_ids_file"; then
-      continue
-    fi
-    build_missing_aur_dep "$dep_id"
-  done < "$aur_dep_ids_file"
-fi
 EOS
 )
 container_script="${container_script/cd \/src/$'cd /src\n'"$makepkg_config_setup"}"
@@ -533,33 +585,8 @@ resolve_aur_dep_closure() {
     fi
   done < "$deps_file"
 
-  sort -u "$ordered_file"
+  awk '!seen[$0]++' "$ordered_file"
   rm -f "$deps_file" "$visited_file" "$ordered_file"
-}
-
-find_cache_pkgfiles_for_ids() {
-  local ids_file="$1"
-  local pkgfile pkgname
-  [[ -s "$ids_file" ]] || return 0
-  while IFS= read -r pkgfile; do
-    [[ -f "$pkgfile" ]] || continue
-    pkgname="$(pkgfile_name_to_pkgname "$pkgfile" || true)"
-    [[ -z "$pkgname" ]] && continue
-    if grep -Fxq "$pkgname" "$ids_file"; then
-      printf '%s\n' "$pkgfile"
-    fi
-  done < "$post_yay_pkgfiles" | sort -u
-}
-
-write_matched_aur_dep_ids() {
-  : > "$matched_aur_dep_ids_file"
-  local dep_pkg dep_pkgname
-  for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
-    dep_pkgname="$(pkgfile_name_to_pkgname "$dep_pkg" || true)"
-    [[ -z "$dep_pkgname" ]] && continue
-    printf '%s\n' "$dep_pkgname" >> "$matched_aur_dep_ids_file"
-  done
-  sort -u -o "$matched_aur_dep_ids_file" "$matched_aur_dep_ids_file"
 }
 
 ensure_local_yay() {
@@ -579,9 +606,23 @@ ensure_local_yay() {
   rm -rf "$tmp_yay"
 }
 
-build_missing_aur_dep() {
+list_aur_dep_pkgfiles() {
   local dep_id="$1"
-  local dep_root dep_src built_pkg built_pkgname
+  local dep_root dep_src
+  dep_root="$(mktemp -d)"
+  dep_src="$dep_root/src"
+
+  git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
+  (
+    cd "$dep_src"
+    "${makepkg_cmd[@]}" --packagelist
+  )
+  rm -rf "$dep_root"
+}
+
+build_and_install_aur_dep() {
+  local dep_id="$1"
+  local dep_root dep_src built_pkg
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
 
@@ -591,66 +632,40 @@ build_missing_aur_dep() {
     "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
   )
 
+  local -a built_pkgs=()
   shopt -s nullglob
   for built_pkg in "$dep_src"/*.pkg.tar.zst "$dep_src"/*.pkg.tar.xz "$dep_src"/*.pkg.tar.gz "$dep_src"/*.pkg.tar.bz2; do
-    built_pkgname="$(pkgfile_name_to_pkgname "$built_pkg" || true)"
-    [[ -z "$built_pkgname" ]] && continue
+    [[ -f "$built_pkg" ]] || continue
+    built_pkgs+=("$built_pkg")
     copy_pkg_with_sig "$built_pkg"
   done
+  if [[ ${#built_pkgs[@]} -gt 0 ]]; then
+    sudo pacman -U --noconfirm "${built_pkgs[@]}" >/dev/null
+  fi
   rm -rf "$dep_root"
 }
 
-aur_dep_pkgfiles=()
 aur_dep_ids=()
 
 if [[ "${ENABLE_AUR_DEPS:-1}" == "1" ]]; then
-  snapshot_yay_pkgfiles "$pre_yay_pkgfiles"
   srcinfo="$(bash -lc "cd '$src_dir' && makepkg --printsrcinfo")"
   mapfile -t aur_dep_ids < <(resolve_aur_dep_closure "$srcinfo")
-  if [[ ${#aur_dep_ids[@]} -gt 0 ]]; then
-    printf '%s\n' "${aur_dep_ids[@]}" > "$aur_dep_ids_file"
-    ensure_local_yay
-    yay -S --noconfirm --needed --asdeps \
-      --mflags "--noconfirm --needed --skippgpcheck" \
-      --answerclean None \
-      --answerdiff None \
-      "${aur_dep_ids[@]}"
-  fi
-  snapshot_yay_pkgfiles "$post_yay_pkgfiles"
-  if [[ -s "$aur_dep_ids_file" && -s "$post_yay_pkgfiles" ]]; then
-    mapfile -t aur_dep_pkgfiles < <(find_cache_pkgfiles_for_ids "$aur_dep_ids_file")
-  fi
-  write_matched_aur_dep_ids
 fi
 
 if [[ "$mode" == "list" ]]; then
-  if [[ ${#aur_dep_pkgfiles[@]} -gt 0 ]]; then
-    printf '%s\n' "${aur_dep_pkgfiles[@]}" | sed 's#^.*/##'
-  fi
-  if [[ -s "$aur_dep_ids_file" ]]; then
-    dep_tmp=""
-    while IFS= read -r dep_id; do
-      [[ -z "$dep_id" ]] && continue
-      if grep -Fxq "$dep_id" "$matched_aur_dep_ids_file"; then
-        continue
-      fi
-      dep_tmp="$(mktemp -d)"
-      git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_tmp/src"
-      (
-        cd "$dep_tmp/src"
-        "${makepkg_cmd[@]}" --packagelist
-      ) | sed 's#^.*/##'
-      rm -rf "$dep_tmp"
-      dep_tmp=""
-    done < "$aur_dep_ids_file"
-    [[ -n "$dep_tmp" ]] && rm -rf "$dep_tmp"
-  fi
+  for dep_id in "${aur_dep_ids[@]}"; do
+    list_aur_dep_pkgfiles "$dep_id" | sed 's#^.*/##'
+  done
   (
     cd "$src_dir"
     "${makepkg_cmd[@]}" --packagelist
   ) | sed 's#^.*/##'
   exit 0
 fi
+
+for dep_id in "${aur_dep_ids[@]}"; do
+  build_and_install_aur_dep "$dep_id"
+done
 
 (
   cd "$src_dir"
@@ -664,15 +679,3 @@ done
 for sig in "$src_dir"/*.pkg.tar.zst.sig "$src_dir"/*.pkg.tar.xz.sig "$src_dir"/*.pkg.tar.gz.sig "$src_dir"/*.pkg.tar.bz2.sig; do
   cp -v "$sig" "$out_dir/"
 done
-for dep_pkg in "${aur_dep_pkgfiles[@]}"; do
-  copy_pkg_with_sig "$dep_pkg"
-done
-if [[ -s "$aur_dep_ids_file" ]]; then
-  while IFS= read -r dep_id; do
-    [[ -z "$dep_id" ]] && continue
-    if grep -Fxq "$dep_id" "$matched_aur_dep_ids_file"; then
-      continue
-    fi
-    build_missing_aur_dep "$dep_id"
-  done < "$aur_dep_ids_file"
-fi
