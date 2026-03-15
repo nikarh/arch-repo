@@ -346,6 +346,7 @@ list_aur_dep_pkgfiles() {
   local dep_root dep_src dep_pkgfile
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
+  chown "$host_uid:$host_gid" "$dep_root"
 
   sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
   (
@@ -360,6 +361,7 @@ build_and_install_aur_dep() {
   local dep_root dep_src built_pkg
   dep_root="$(mktemp -d)"
   dep_src="$dep_root/src"
+  chown "$host_uid:$host_gid" "$dep_root"
 
   sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
   (
