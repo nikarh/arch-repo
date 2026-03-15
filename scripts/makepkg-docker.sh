@@ -113,7 +113,7 @@ snapshot_yay_pkgfiles() {
   local outfile="$1"
   : > "$outfile"
   local root
-  for root in "/home/$build_user/.cache/yay" "/root/.cache/yay"; do
+  for root in "/home/$build_user/.cache/yay" "/root/.cache/yay" "/var/cache/pacman/pkg"; do
     [[ -d "$root" ]] || continue
     find "$root" -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort -u >> "$outfile"
   done
@@ -258,7 +258,7 @@ build_missing_aur_dep() {
   sudo -u "$build_user" git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
   (
     cd "$dep_src"
-    sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+    sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
   )
 
   local built_pkg built_pkgname
@@ -351,7 +351,7 @@ if [[ "$MODE" == "list" ]]; then
   exit 0
 fi
 
-sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+sudo -u "$build_user" "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
 
 shopt -s nullglob
 for f in ./*.pkg.tar.zst ./*.pkg.tar.xz ./*.pkg.tar.gz ./*.pkg.tar.bz2; do
@@ -417,7 +417,7 @@ snapshot_yay_pkgfiles() {
   local outfile="$1"
   : > "$outfile"
   local root
-  for root in "${HOME}/.cache/yay" "/root/.cache/yay"; do
+  for root in "${HOME}/.cache/yay" "/root/.cache/yay" "/var/cache/pacman/pkg"; do
     [[ -d "$root" ]] || continue
     find "$root" -type f -name '*.pkg.tar.*' ! -name '*.sig' | sort -u >> "$outfile"
   done
@@ -588,7 +588,7 @@ build_missing_aur_dep() {
   git clone --depth=1 "https://aur.archlinux.org/${dep_id}.git" "$dep_src"
   (
     cd "$dep_src"
-    "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+    "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
   )
 
   shopt -s nullglob
@@ -654,7 +654,7 @@ fi
 
 (
   cd "$src_dir"
-  "${makepkg_cmd[@]}" --syncdeps --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
+  "${makepkg_cmd[@]}" --syncdeps --force --noconfirm --clean --cleanbuild --needed --noprogressbar --skippgpcheck
 )
 
 shopt -s nullglob

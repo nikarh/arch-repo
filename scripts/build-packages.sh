@@ -115,17 +115,6 @@ if [[ "$count" -eq 0 ]]; then
   fi
 fi
 
-jq -c \
-  --arg arch "$arch" \
-  --slurpfile selected_ids "$selected_ids_file" \
-  '
-  . as $root
-  | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
-  | ($selected_ids[0] // []) as $selected
-  | $root.packages[]
-  | select((.arches // $default_arches) | index($arch))
-  | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
-  ' "$config_file" | \
 while IFS= read -r pkg; do
   pkg_id=$(jq -r '.id // empty' <<<"$pkg")
   if [[ -z "$pkg_id" ]]; then
@@ -242,7 +231,19 @@ while IFS= read -r pkg; do
       --arg same_version_rebuild_policy "$pkg_same_policy" \
       '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy}' >> "$manifest_tmp"
   done
-done
+done < <(
+  jq -c \
+    --arg arch "$arch" \
+    --slurpfile selected_ids "$selected_ids_file" \
+    '
+    . as $root
+    | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
+    | ($selected_ids[0] // []) as $selected
+    | $root.packages[]
+    | select((.arches // $default_arches) | index($arch))
+    | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
+    ' "$config_file"
+)
 
 if [[ -f "$manifest_tmp" ]]; then
   jq -s '.' "$manifest_tmp" > "$out_dir/manifest.json"
