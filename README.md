@@ -113,6 +113,7 @@ Field notes:
   - Per-package override for automatic debug split package generation.
   - This only controls makepkg auto-generated debug subpackages; explicit package names (including legitimate names ending with `-debug`) are not filtered out by name.
 - AUR dependencies are resolved automatically during build (including recursive AUR deps) using `yay` when a dependency is not found in official repos.
+  - The build promotes the full resolved AUR dependency closure into the repo, not just the top-level selected package.
   - Set `ENABLE_AUR_DEPS=0` in environment to disable this behavior.
 - If a package PKGBUILD declares `validpgpkeys`, build automatically tries to import those keys before source verification.
 - If a package is listed for an arch but PKGBUILD does not support that arch, it is skipped with a warning for that arch build.
