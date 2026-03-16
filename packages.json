@@ -131,6 +131,18 @@
     },
     {
       "type": "aur",
+      "id": "qt5-webchannel"
+    },
+    {
+      "type": "aur",
+      "id": "qt5-webengine"
+    },
+    {
+      "type": "aur",
+      "id": "qt5-webkit"
+    },
+    {
+      "type": "aur",
       "id": "qdirstat"
     },
     {
