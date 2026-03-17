@@ -131,6 +131,7 @@ while IFS= read -r pkg; do
 
   pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" '.prebuild_skip_existing_version // $def' <<<"$pkg")
   pkg_same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$pkg")
+  pkg_cleanup_old_versions=$(jq -r '.cleanup_old_versions // false' <<<"$pkg")
   pkg_extra_build_deps=$(jq -r '(.extra_build_deps // []) | join(" ")' <<<"$pkg")
   pkg_build_auto_debug=$(jq -r --argjson def "$global_build_auto_debug" '.build_auto_debug_packages // $def' <<<"$pkg")
   if [[ -z "$pkg_same_policy" ]]; then
@@ -233,7 +234,8 @@ while IFS= read -r pkg; do
       --arg filename "$filename" \
       --arg sha256 "$sha256" \
       --arg same_version_rebuild_policy "$pkg_same_policy" \
-      '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy}' >> "$manifest_tmp"
+      --argjson cleanup_old_versions "$pkg_cleanup_old_versions" \
+      '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy, cleanup_old_versions:$cleanup_old_versions}' >> "$manifest_tmp"
   done
   sort -u -o "$release_assets_file" "$release_assets_file"
 done < <(

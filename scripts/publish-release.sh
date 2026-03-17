@@ -38,6 +38,7 @@ combined_dir="$tmp_root/combined"
 selected_dir="$tmp_root/selected"
 state_file="$tmp_root/state.json"
 prev_state="$tmp_root/prev_state.json"
+release_json="$tmp_root/release.json"
 mkdir -p "$existing_dir" "$combined_dir" "$selected_dir"
 trap 'rm -rf "$tmp_root"' EXIT
 
@@ -46,6 +47,8 @@ if ! gh release view "$release_tag" >/dev/null 2>&1; then
     --title "Pacman repo ($arch)" \
     --notes "Auto-managed pacman repo assets for $arch."
 fi
+
+gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" > "$release_json"
 
 if gh release download "$release_tag" --pattern 'state.json' --dir "$tmp_root" >/dev/null 2>&1; then
   cp "$tmp_root/state.json" "$prev_state"
@@ -66,6 +69,8 @@ if [[ ${#new_pkgfiles[@]} -eq 0 ]]; then
 fi
 
 declare -a selected_files=()
+declare -a delete_asset_ids=()
+declare -a delete_asset_names=()
 cp "$prev_state" "$state_file"
 
 for pkgpath in "${new_pkgfiles[@]}"; do
@@ -80,6 +85,7 @@ for pkgpath in "${new_pkgfiles[@]}"; do
   version=$(jq -r '.version' <<<"$info")
   sha256=$(jq -r '.sha256' <<<"$info")
   same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$info")
+  cleanup_old_versions=$(jq -r '.cleanup_old_versions // false' <<<"$info")
   if [[ -z "$same_policy" ]]; then
     same_policy="$global_same_policy"
   fi
@@ -107,6 +113,35 @@ for pkgpath in "${new_pkgfiles[@]}"; do
   fi
 
   if [[ "$select_pkg" -eq 1 ]]; then
+    if [[ "$cleanup_old_versions" == "true" ]]; then
+      mapfile -t old_filenames < <(
+        (
+          find "$combined_dir" -maxdepth 1 -type f -name '*.pkg.tar.*' -printf '%f\n' 2>/dev/null || true
+          jq -r '.assets[]?.name' "$release_json"
+        ) | while IFS= read -r candidate; do
+          [[ -z "$candidate" || "$candidate" == *.sig ]] && continue
+          if [[ "$candidate" =~ ^(.+)-([^-]+)-([^-]+)-([^-]+)\.pkg\.tar\..+$ ]] && [[ "${BASH_REMATCH[1]}" == "$pkgname" ]]; then
+            printf '%s\n' "$candidate"
+          fi
+        done | awk '!seen[$0]++'
+      )
+      for old_filename in "${old_filenames[@]}"; do
+        [[ "$old_filename" == "$filename" ]] && continue
+        rm -f "$combined_dir/$old_filename" "$combined_dir/$old_filename.sig"
+        while IFS=$'\t' read -r asset_id asset_name; do
+          [[ -z "$asset_id" || -z "$asset_name" ]] && continue
+          delete_asset_ids+=("$asset_id")
+          delete_asset_names+=("$asset_name")
+        done < <(
+          jq -r --arg old "$old_filename" '
+            .assets[]
+            | select(.name == $old or .name == ($old + ".sig"))
+            | [.id, .name] | @tsv
+          ' "$release_json"
+        )
+      done
+    fi
+
     cp "$pkgpath" "$combined_dir/$filename"
     cp "$pkgpath" "$selected_dir/$filename"
     if [[ -f "$pkgpath.sig" ]]; then
@@ -223,10 +258,32 @@ done
 
 # Deduplicate upload paths.
 mapfile -t upload_list < <(printf '%s\n' "${upload_list[@]}" | sed '/^$/d' | sort -u)
+if [[ ${#delete_asset_ids[@]} -gt 0 ]]; then
+  mapfile -t delete_pairs < <(
+    paste <(printf '%s\n' "${delete_asset_ids[@]}") <(printf '%s\n' "${delete_asset_names[@]}") \
+      | awk '!seen[$0]++'
+  )
+  delete_asset_ids=()
+  delete_asset_names=()
+  for pair in "${delete_pairs[@]}"; do
+    delete_asset_ids+=("${pair%%$'\t'*}")
+    delete_asset_names+=("${pair#*$'\t'}")
+  done
+fi
 
 if [[ ${#upload_list[@]} -eq 0 ]]; then
   echo "No selected package updates and no missing signatures for $arch; skipping release update"
   exit 0
+fi
+
+if [[ ${#delete_asset_ids[@]} -gt 0 ]]; then
+  for idx in "${!delete_asset_ids[@]}"; do
+    echo "Deleting old asset ${delete_asset_names[$idx]}"
+    gh api \
+      --method DELETE \
+      "repos/${GITHUB_REPOSITORY}/releases/assets/${delete_asset_ids[$idx]}" \
+      >/dev/null
+  done
 fi
 
 if [[ ${#upload_list[@]} -gt 0 ]]; then

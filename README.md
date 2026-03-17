@@ -69,7 +69,8 @@ There is also a manual workflow named `Remove Packages From Repo Releases` that 
       "arches": ["x86_64"],
       "prebuild_skip_existing_version": false,
       "same_version_rebuild_policy": "force_upload",
-      "build_auto_debug_packages": false
+      "build_auto_debug_packages": false,
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -112,6 +113,9 @@ Field notes:
 - `packages[].build_auto_debug_packages` (optional):
   - Per-package override for automatic debug split package generation.
   - This only controls makepkg auto-generated debug subpackages; explicit package names (including legitimate names ending with `-debug`) are not filtered out by name.
+- `packages[].cleanup_old_versions` (optional):
+  - When `true`, publishing a rebuilt package removes older release assets for the same package name before uploading the new version.
+  - Useful for rolling packages such as `*-git` where you only want the latest published version kept in the release-backed repo.
 - AUR dependencies are resolved automatically during build (including recursive AUR deps) using `yay` when a dependency is not found in official repos.
   - The build promotes the full resolved AUR dependency closure into the repo, not just the top-level selected package.
   - Set `ENABLE_AUR_DEPS=0` in environment to disable this behavior.
