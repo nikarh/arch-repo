@@ -26,6 +26,19 @@ selected_ids_file="$work_root/selected-ids.json"
 trap 'rm -rf "$work_root"' EXIT
 retry_count="${BUILD_RETRY_COUNT:-3}"
 retry_delay_sec="${BUILD_RETRY_DELAY_SEC:-20}"
+repo_name=$(jq -r '.repo.name // "arc-poc"' "$config_file")
+github_repository="${GITHUB_REPOSITORY:-}"
+
+if [[ -z "$github_repository" ]] && git_remote_url="$(git remote get-url origin 2>/dev/null)"; then
+  if [[ "$git_remote_url" =~ github\.com[:/]([^/]+/[^/.]+)(\.git)?$ ]]; then
+    github_repository="${BASH_REMATCH[1]}"
+  fi
+fi
+
+prebuilt_repo_url=""
+if [[ -n "$github_repository" ]]; then
+  prebuilt_repo_url="https://github.com/${github_repository}/releases/download/repo-${arch}"
+fi
 
 if [[ -n "$package_filter" ]]; then
   printf '%s' "$package_filter" \
@@ -163,7 +176,7 @@ while IFS= read -r pkg; do
   esac
 
   list_err="$pkg_work/list.err"
-  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
+  if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" PREBUILT_REPO_NAME="$repo_name" PREBUILT_REPO_URL="$prebuilt_repo_url" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
     if grep -q "not available for the '${arch}' architecture" "$list_err"; then
       echo "SKIP BUILD: $pkg_id not available for arch=$arch"
       continue
@@ -194,7 +207,7 @@ while IFS= read -r pkg; do
     continue
   fi
 
-  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" build
+  retry_cmd "build package $pkg_id for $arch" env EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" PREBUILT_REPO_NAME="$repo_name" PREBUILT_REPO_URL="$prebuilt_repo_url" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" build
 
   shopt -s nullglob
   pkg_files=("$pkg_out"/*.pkg.tar.*)

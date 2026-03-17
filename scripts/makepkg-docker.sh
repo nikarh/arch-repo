@@ -189,8 +189,24 @@ done < /etc/pacman.conf
 if [[ "$disable_sandbox_set" -eq 0 ]]; then
   sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
 fi
+
+configure_prebuilt_repo() {
+  local repo_name="${PREBUILT_REPO_NAME:-}"
+  local repo_url="${PREBUILT_REPO_URL:-}"
+  [[ -n "$repo_name" && -n "$repo_url" ]] || return 0
+  if ! grep -Fxq "[$repo_name]" /etc/pacman.conf 2>/dev/null; then
+    {
+      printf '\n[%s]\n' "$repo_name"
+      printf 'SigLevel = Never\n'
+      printf 'Server = %s\n' "$repo_url"
+    } >> /etc/pacman.conf
+  fi
+  pacman -Sy --noconfirm >/dev/null
+}
+
 pacman -Syu --noconfirm --needed archlinux-keyring >/dev/null
 pacman -S --noconfirm --needed base-devel git sudo gnupg curl jq >/dev/null
+configure_prebuilt_repo
 if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
   pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
 fi
@@ -473,6 +489,8 @@ if command -v docker >/dev/null 2>&1; then
     -e MODE="$mode"
     -e EXTRA_BUILD_DEPS="${EXTRA_BUILD_DEPS:-}"
     -e BUILD_AUTO_DEBUG_PACKAGES="${BUILD_AUTO_DEBUG_PACKAGES:-false}"
+    -e PREBUILT_REPO_NAME="${PREBUILT_REPO_NAME:-}"
+    -e PREBUILT_REPO_URL="${PREBUILT_REPO_URL:-}"
     -v "$src_dir:/src"
     -v "$out_dir:/out"
   )
@@ -495,6 +513,16 @@ if ! command -v pacman >/dev/null 2>&1; then
 fi
 
 sudo pacman -Syu --noconfirm --needed archlinux-keyring base-devel git sudo curl jq >/dev/null
+if [[ -n "${PREBUILT_REPO_NAME:-}" && -n "${PREBUILT_REPO_URL:-}" ]]; then
+  if ! grep -Fxq "[${PREBUILT_REPO_NAME}]" /etc/pacman.conf 2>/dev/null; then
+    {
+      printf '\n[%s]\n' "$PREBUILT_REPO_NAME"
+      printf 'SigLevel = Never\n'
+      printf 'Server = %s\n' "$PREBUILT_REPO_URL"
+    } | sudo tee -a /etc/pacman.conf >/dev/null
+  fi
+  sudo pacman -Sy --noconfirm >/dev/null
+fi
 if [[ -n "${EXTRA_BUILD_DEPS:-}" ]]; then
   sudo pacman -S --noconfirm --needed ${EXTRA_BUILD_DEPS} >/dev/null
 fi
