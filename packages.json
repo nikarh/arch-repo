@@ -135,11 +135,17 @@
     },
     {
       "type": "aur",
-      "id": "qt5-webengine"
+      "id": "qt5-webengine",
+      "extra_build_deps": [
+        "clang"
+      ]
     },
     {
       "type": "aur",
-      "id": "qt5-webkit"
+      "id": "qt5-webkit",
+      "extra_build_deps": [
+        "clang"
+      ]
     },
     {
       "type": "aur",
