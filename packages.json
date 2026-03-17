@@ -39,7 +39,8 @@
     },
     {
       "type": "aur",
-      "id": "dotool-git"
+      "id": "dotool-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -51,7 +52,8 @@
     },
     {
       "type": "aur",
-      "id": "dracula-cursors-git"
+      "id": "dracula-cursors-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -59,7 +61,8 @@
     },
     {
       "type": "aur",
-      "id": "dracula-icons-git"
+      "id": "dracula-icons-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -71,7 +74,8 @@
     },
     {
       "type": "aur",
-      "id": "it87-dkms-git"
+      "id": "it87-dkms-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -83,11 +87,13 @@
     },
     {
       "type": "aur",
-      "id": "openscad-bosl2-git"
+      "id": "openscad-bosl2-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
-      "id": "openscad-git"
+      "id": "openscad-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -103,7 +109,8 @@
     },
     {
       "type": "local",
-      "id": "kvantum-theme-dracula-git"
+      "id": "kvantum-theme-dracula-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "local",
@@ -127,7 +134,8 @@
     },
     {
       "type": "aur",
-      "id": "plymouth-theme-minimal-dark-git"
+      "id": "plymouth-theme-minimal-dark-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
@@ -153,7 +161,8 @@
     },
     {
       "type": "aur",
-      "id": "quickemu-git"
+      "id": "quickemu-git",
+      "cleanup_old_versions": true
     },
     {
       "type": "aur",
