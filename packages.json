@@ -143,22 +143,6 @@
     },
     {
       "type": "aur",
-      "id": "qt5-webengine",
-      "extra_build_deps": [
-        "clang",
-        "llvm"
-      ]
-    },
-    {
-      "type": "aur",
-      "id": "qt5-webkit",
-      "extra_build_deps": [
-        "clang",
-        "llvm"
-      ]
-    },
-    {
-      "type": "aur",
       "id": "qdirstat"
     },
     {
