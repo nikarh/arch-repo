@@ -66,10 +66,6 @@
     },
     {
       "type": "aur",
-      "id": "epson-inkjet-printer-escpr"
-    },
-    {
-      "type": "aur",
       "id": "libva-headless"
     },
     {
