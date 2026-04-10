@@ -52,7 +52,7 @@ jobs:
           tar -C "dist/${{ matrix.arch }}" -czf "dist/packages-${{ matrix.arch }}.tar.gz" .
 
       - name: Upload package artifacts
-        uses: actions/upload-artifact@v7.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: packages-${{ matrix.arch }}
           path: dist/packages-${{ matrix.arch }}.tar.gz
