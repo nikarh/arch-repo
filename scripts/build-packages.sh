@@ -142,11 +142,11 @@ while IFS= read -r pkg; do
   pkg_out="$pkg_work/out"
   mkdir -p "$src_dir" "$pkg_out"
 
-  pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" '.prebuild_skip_existing_version // $def' <<<"$pkg")
+  pkg_skip_existing=$(jq -r --argjson def "$global_skip_existing" 'if has("prebuild_skip_existing_version") then .prebuild_skip_existing_version else $def end' <<<"$pkg")
   pkg_same_policy=$(jq -r '.same_version_rebuild_policy // empty' <<<"$pkg")
   pkg_cleanup_old_versions=$(jq -r '.cleanup_old_versions // false' <<<"$pkg")
   pkg_extra_build_deps=$(jq -r '(.extra_build_deps // []) | join(" ")' <<<"$pkg")
-  pkg_build_auto_debug=$(jq -r --argjson def "$global_build_auto_debug" '.build_auto_debug_packages // $def' <<<"$pkg")
+  pkg_build_auto_debug=$(jq -r --argjson def "$global_build_auto_debug" 'if has("build_auto_debug_packages") then .build_auto_debug_packages else $def end' <<<"$pkg")
   if [[ -z "$pkg_same_policy" ]]; then
     pkg_same_policy="$global_same_policy"
   fi
