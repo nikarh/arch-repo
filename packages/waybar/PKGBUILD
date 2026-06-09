@@ -1,13 +1,16 @@
 # Maintainer: Nikolay Arhipov <n@arhipov.net>
 # Adapted from the Arch Linux waybar package.
 
-pkgname=waybar
-pkgver=1.0.15.0.r4486.g6ab48263
+pkgname=waybar-nikarh
+pkgver=0.15.0.r4486.g6ab48263
 pkgrel=1
 pkgdesc='Highly customizable Wayland bar for Sway and Wlroots based compositors'
 arch=('x86_64')
 url="https://github.com/nikarh/Waybar/"
 license=('MIT')
+provides=('waybar')
+conflicts=('waybar')
+replaces=('waybar')
 depends=(
     'atkmm'
     'cairomm'
@@ -56,22 +59,22 @@ backup=(
 optdepends=(
     'otf-font-awesome: Icons in the default configuration'
 )
-source=("$pkgname::git+https://github.com/nikarh/Waybar.git#branch=master")
+source=("waybar::git+https://github.com/nikarh/Waybar.git#branch=master")
 b2sums=('SKIP')
 
 pkgver() {
-    cd "$pkgname"
+    cd waybar
 
     local project_version revision commit
     project_version=$(sed -n "s/.*version: '\\([^']*\\)'.*/\\1/p" meson.build | head -n1)
     revision=$(git rev-list --count HEAD)
     commit=$(git rev-parse --short HEAD)
 
-    printf '1.%s.r%s.g%s' "$project_version" "$revision" "$commit"
+    printf '%s.r%s.g%s' "$project_version" "$revision" "$commit"
 }
 
 build() {
-    cd "$pkgname"
+    cd waybar
     meson --prefix=/usr \
           --buildtype=plain \
           --auto-features=enabled \
@@ -85,7 +88,7 @@ build() {
 }
 
 check() {
-    cd "$pkgname"
+    cd waybar
     meson test -C build --print-errorlogs --no-rebuild --suite waybar
 }
 
@@ -103,7 +106,7 @@ package() {
       'libupower-glib.so'
     )
 
-    cd "$pkgname"
+    cd waybar
     meson install -C build --destdir "$pkgdir"
     install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
 }
