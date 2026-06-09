@@ -122,6 +122,15 @@
     },
     {
       "type": "local",
+      "id": "waybar",
+      "arches": [
+        "x86_64"
+      ],
+      "prebuild_skip_existing_version": false,
+      "cleanup_old_versions": true
+    },
+    {
+      "type": "local",
       "id": "xterm-alacritty-symlink"
     },
     {

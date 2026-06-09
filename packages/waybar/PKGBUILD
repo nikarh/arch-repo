@@ -1,0 +1,110 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+# Adapted from the Arch Linux waybar package.
+
+pkgname=waybar
+pkgver=0.15.0.r4486.g6ab48263
+pkgrel=1
+epoch=1
+pkgdesc='Highly customizable Wayland bar for Sway and Wlroots based compositors'
+arch=('x86_64')
+url="https://github.com/nikarh/Waybar/"
+license=('MIT')
+depends=(
+    'atkmm'
+    'cairomm'
+    'fmt'
+    'glib2'
+    'glibc'
+    'glibmm'
+    'gpsd'
+    'gtk-layer-shell'
+    'gtk3'
+    'gtkmm3'
+    'jack'
+    'jsoncpp'
+    'libdbusmenu-gtk3'
+    'libevdev'
+    'libgcc'
+    'libinput'
+    'libmpdclient'
+    'libnl'
+    'libpipewire'
+    'libpulse'
+    'libsigc++'
+    'libstdc++'
+    'libwireplumber'
+    'libxkbcommon'
+    'playerctl'
+    'sndio'
+    'spdlog'
+    'systemd-libs'
+    'upower'
+    'wayland'
+)
+makedepends=(
+    'catch2'
+    'cmake'
+    'git'
+    'meson'
+    'glib2-devel'
+    'scdoc'
+    'wayland-protocols'
+)
+backup=(
+    etc/xdg/waybar/config.jsonc
+    etc/xdg/waybar/style.css
+)
+optdepends=(
+    'otf-font-awesome: Icons in the default configuration'
+)
+source=("$pkgname::git+https://github.com/nikarh/Waybar.git#branch=master")
+b2sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+
+    local project_version revision commit
+    project_version=$(sed -n "s/.*version: '\\([^']*\\)'.*/\\1/p" meson.build | head -n1)
+    revision=$(git rev-list --count HEAD)
+    commit=$(git rev-parse --short HEAD)
+
+    printf '%s.r%s.g%s' "$project_version" "$revision" "$commit"
+}
+
+build() {
+    cd "$pkgname"
+    meson --prefix=/usr \
+          --buildtype=plain \
+          --auto-features=enabled \
+          --wrap-mode=nodownload \
+          -Dcpp_std=c++20 \
+          -Dexperimental=true \
+          -Dcava=disabled \
+          -Dtests=enabled \
+          build
+    meson compile -C build
+}
+
+check() {
+    cd "$pkgname"
+    meson test -C build --print-errorlogs --no-rebuild --suite waybar
+}
+
+package() {
+    depends+=(
+      'libatkmm-1.6.so'
+      'libcairomm-1.0.so'
+      'libgtk-3.so'
+      'libjack.so'
+      'libjsoncpp.so'
+      'libpipewire-0.3.so'
+      'libsndio.so'
+      'libspdlog.so'
+      'libudev.so'
+      'libupower-glib.so'
+    )
+
+    cd "$pkgname"
+    meson install -C build --destdir "$pkgdir"
+    install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
+}
