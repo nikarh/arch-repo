@@ -2,9 +2,8 @@
 # Adapted from the Arch Linux waybar package.
 
 pkgname=waybar
-pkgver=0.15.0.r4486.g6ab48263
+pkgver=1.0.15.0.r4486.g6ab48263
 pkgrel=1
-epoch=1
 pkgdesc='Highly customizable Wayland bar for Sway and Wlroots based compositors'
 arch=('x86_64')
 url="https://github.com/nikarh/Waybar/"
@@ -68,7 +67,7 @@ pkgver() {
     revision=$(git rev-list --count HEAD)
     commit=$(git rev-parse --short HEAD)
 
-    printf '%s.r%s.g%s' "$project_version" "$revision" "$commit"
+    printf '1.%s.r%s.g%s' "$project_version" "$revision" "$commit"
 }
 
 build() {
