@@ -276,7 +276,9 @@ for sig in ./*.pkg.tar.zst.sig ./*.pkg.tar.xz.sig ./*.pkg.tar.gz.sig ./*.pkg.tar
 done
 EOS
 )
-builder_script="${builder_script/MAKEPKG_CONFIG_SETUP_PLACEHOLDER/$makepkg_config_setup}"
+builder_script_prefix="${builder_script%%MAKEPKG_CONFIG_SETUP_PLACEHOLDER*}"
+builder_script_suffix="${builder_script#*MAKEPKG_CONFIG_SETUP_PLACEHOLDER}"
+builder_script="${builder_script_prefix}${makepkg_config_setup}${builder_script_suffix}"
 
 if command -v docker >/dev/null 2>&1; then
   docker_args=(
