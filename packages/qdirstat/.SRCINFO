@@ -1,0 +1,22 @@
+pkgbase = qdirstat
+	pkgdesc = Qt-based directory statistics (KDirStat/K4DirStat without any KDE - from the original KDirStat author)
+	pkgver = 2.0
+	pkgrel = 1
+	url = https://github.com/shundhammer/qdirstat
+	arch = i686
+	arch = x86_64
+	license = GPL-2.0-only
+	makedepends = git
+	depends = qt6-base
+	depends = qt6-5compat
+	depends = glibc
+	depends = gcc-libs
+	depends = zlib
+	depends = hicolor-icon-theme
+	optdepends = perl: For use with scripts
+	optdepends = perl-uri: For use with scripts
+	conflicts = qdirstat-git
+	source = qdirstat-2.0.tar.gz::https://github.com/shundhammer/qdirstat/archive/2.0.tar.gz
+	sha256sums = a0b2ba91caf68ec4ee7705d5063bc542ac8aea4d421451103245c69d272bf19f
+
+pkgname = qdirstat

@@ -1,0 +1,4 @@
+[libva-headless]
+source = "git"
+git = "https://github.com/intel/libva.git"
+exclude_regex = ".*(2009|Alpha).*"

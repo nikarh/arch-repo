@@ -1,0 +1,15 @@
+pkgbase = pw-sinksource-status
+	pkgdesc = PipeWire audio status tool for waybar/i3status-rs
+	pkgver = 0.0.1
+	pkgrel = 1
+	url = https://github.com/nikarh/dotfiles-tools/
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = gcc
+	makedepends = pkgconf
+	depends = pipewire
+	source = pw-sinksource-status.c
+	sha256sums = d44506a261785707113f4a64939c0655d5998f1af629c8a17ae94844f46a4ea6
+
+pkgname = pw-sinksource-status

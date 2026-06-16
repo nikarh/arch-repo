@@ -1,0 +1,20 @@
+pkgbase = dotool-git
+	pkgdesc = Command to simulate input anywhere
+	pkgver = 1.4.r1.gb5812c0
+	pkgrel = 1
+	url = https://git.sr.ht/~geb/dotool
+	install = dotool.install
+	arch = any
+	license = GPL3
+	makedepends = git
+	makedepends = go
+	makedepends = scdoc
+	depends = libxkbcommon
+	provides = dotool
+	conflicts = dotool
+	source = dotool-git::git+https://git.sr.ht/~geb/dotool
+	source = dotoold.service
+	sha256sums = SKIP
+	sha256sums = a7309bb8f8ff97b1b85ff48a5db2dd4ed02c00c4f23628403c385abe93e88aca
+
+pkgname = dotool-git

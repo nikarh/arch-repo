@@ -1,0 +1,12 @@
+pkgbase = kvantum-theme-dracula-git
+	pkgdesc = Dracula theme for Kvantum
+	pkgver = r419.74255b1
+	pkgrel = 1
+	url = https://github.com/dracula/gtk
+	arch = any
+	license = MIT
+	makedepends = git
+	source = git+https://github.com/dracula/gtk.git
+	md5sums = SKIP
+
+pkgname = kvantum-theme-dracula-git
