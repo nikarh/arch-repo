@@ -10,40 +10,22 @@
   },
   "packages": [
     {
-      "type": "aur",
       "id": "asp",
       "arches": [
         "x86_64",
         "aarch64"
       ]
     },
+    "broadcom-bt-firmware",
+    "chromium-widevine",
+    "code-features",
+    "code-marketplace",
+    "cursor-bin",
     {
-      "type": "aur",
-      "id": "broadcom-bt-firmware"
-    },
-    {
-      "type": "aur",
-      "id": "chromium-widevine"
-    },
-    {
-      "type": "aur",
-      "id": "code-features"
-    },
-    {
-      "type": "aur",
-      "id": "code-marketplace"
-    },
-    {
-      "type": "aur",
-      "id": "cursor-bin"
-    },
-    {
-      "type": "aur",
       "id": "dotool-git",
       "cleanup_old_versions": true
     },
     {
-      "type": "aur",
       "id": "downgrade",
       "arches": [
         "x86_64",
@@ -51,77 +33,78 @@
       ]
     },
     {
-      "type": "aur",
       "id": "dracula-cursors-git",
       "cleanup_old_versions": true
     },
+    "dracula-gtk-theme",
     {
-      "type": "aur",
-      "id": "dracula-gtk-theme"
-    },
-    {
-      "type": "aur",
       "id": "dracula-icons-git",
       "cleanup_old_versions": true
     },
+    "libva-headless",
     {
-      "type": "aur",
-      "id": "libva-headless"
-    },
-    {
-      "type": "aur",
       "id": "it87-dkms-git",
       "cleanup_old_versions": true
     },
+    "joystickwake",
+    "onlyoffice-bin",
     {
-      "type": "aur",
-      "id": "joystickwake"
-    },
-    {
-      "type": "aur",
-      "id": "onlyoffice-bin"
-    },
-    {
-      "type": "aur",
       "id": "openscad-bosl2-git",
       "cleanup_old_versions": true
     },
     {
-      "type": "aur",
       "id": "openscad-git",
       "cleanup_old_versions": true
     },
+    "orca-slicer-bin",
     {
-      "type": "aur",
-      "id": "orca-slicer-bin"
+      "id": "plymouth-theme-minimal-dark-git",
+      "cleanup_old_versions": true
     },
+    "qt5-webchannel",
+    "qdirstat",
     {
-      "type": "local",
-      "id": "brie-bin"
+      "id": "quickemu-git",
+      "cleanup_old_versions": true
     },
+    "celt",
+    "jack",
+    "sdl2",
+    "cemu",
+    "gtk2",
+    "openssl-1.0",
+    "latvia-eid-middleware",
+    "eparakstitajs3",
+    "slack-desktop",
+    "sunshine",
+    "ttf-nanum",
+    "orca-slicer-unstable-bin",
     {
-      "type": "local",
-      "id": "env-secrets-bin"
+      "id": "systemd-boot-pacman-hook",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
     },
+    "voxtype-bin",
+    "xpadneo-dkms",
     {
-      "type": "local",
+      "id": "yay",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
+    },
+    "brie-bin",
+    "env-secrets-bin",
+    {
       "id": "kvantum-theme-dracula-git",
       "cleanup_old_versions": true
     },
+    "micro-locker",
+    "pw-sinksource-status",
+    "sway-nvidia-session",
     {
-      "type": "local",
-      "id": "micro-locker"
-    },
-    {
-      "type": "local",
-      "id": "pw-sinksource-status"
-    },
-    {
-      "type": "local",
-      "id": "sway-nvidia-session"
-    },
-    {
-      "type": "local",
       "id": "waybar",
       "arches": [
         "x86_64"
@@ -129,87 +112,7 @@
       "prebuild_skip_existing_version": false,
       "cleanup_old_versions": true
     },
-    {
-      "type": "local",
-      "id": "xterm-alacritty-symlink"
-    },
-    {
-      "type": "local",
-      "id": "xorg-on-input-hierarchy-change"
-    },
-    {
-      "type": "aur",
-      "id": "plymouth-theme-minimal-dark-git",
-      "cleanup_old_versions": true
-    },
-    {
-      "type": "aur",
-      "id": "qt5-webchannel"
-    },
-    {
-      "type": "aur",
-      "id": "qdirstat"
-    },
-    {
-      "type": "aur",
-      "id": "quickemu-git",
-      "cleanup_old_versions": true
-    },
-    {
-      "type": "aur",
-      "id": "cemu"
-    },
-    {
-      "type": "aur",
-      "id": "gtk2"
-    },
-    {
-      "type": "aur",
-      "id": "openssl-1.0"
-    },
-    {
-      "type": "aur",
-      "id": "latvia-eid-middleware"
-    },
-    {
-      "type": "aur",
-      "id": "eparakstitajs3"
-    },
-    {
-      "type": "aur",
-      "id": "slack-desktop"
-    },
-    {
-      "type": "aur",
-      "id": "sunshine"
-    },
-    {
-      "type": "aur",
-      "id": "orca-slicer-unstable-bin"
-    },
-    {
-      "type": "aur",
-      "id": "systemd-boot-pacman-hook",
-      "arches": [
-        "x86_64",
-        "aarch64"
-      ]
-    },
-    {
-      "type": "aur",
-      "id": "voxtype-bin"
-    },
-    {
-      "type": "aur",
-      "id": "xpadneo-dkms"
-    },
-    {
-      "type": "aur",
-      "id": "yay",
-      "arches": [
-        "x86_64",
-        "aarch64"
-      ]
-    }
+    "xterm-alacritty-symlink",
+    "xorg-on-input-hierarchy-change"
   ]
 }

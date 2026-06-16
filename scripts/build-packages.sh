@@ -23,6 +23,10 @@ work_root="$(mktemp -d)"
 manifest_tmp="$work_root/manifest.ndjson"
 release_assets_file="$work_root/release-assets.txt"
 selected_ids_file="$work_root/selected-ids.json"
+selected_ids_with_deps_file="$work_root/selected-ids-with-deps.json"
+arch_packages_all_file="$work_root/packages-all.ndjson"
+arch_packages_file="$work_root/packages.ndjson"
+package_metadata_file="$work_root/package-metadata.ndjson"
 trap 'rm -rf "$work_root"' EXIT
 retry_count="${BUILD_RETRY_COUNT:-3}"
 retry_delay_sec="${BUILD_RETRY_DELAY_SEC:-20}"
@@ -81,6 +85,147 @@ retry_cmd() {
   done
 }
 
+normalize_dep_name() {
+  local dep_name="$1"
+  dep_name="${dep_name%%[<>=]*}"
+  dep_name="${dep_name%%:*}"
+  dep_name="${dep_name//[[:space:]]/}"
+  [[ -z "$dep_name" ]] && return 1
+  [[ "$dep_name" == *".so"* || "$dep_name" == */* ]] && return 1
+  printf '%s\n' "$dep_name"
+}
+
+srcinfo_values() {
+  local srcinfo_file="$1"
+  local fields="$2"
+  awk -F' = ' -v fields="$fields" '
+    BEGIN {
+      split(fields, names, ",")
+      for (idx in names) {
+        wanted[names[idx]] = 1
+      }
+    }
+    {
+      field = $1
+      sub(/^[[:space:]]*/, "", field)
+      if (field in wanted) {
+        print $2
+      }
+    }
+  ' "$srcinfo_file" | while IFS= read -r value; do
+    normalize_dep_name "$value" || true
+  done | sort -u
+}
+
+srcinfo_dep_values() {
+  local srcinfo_file="$1"
+  awk -F' = ' '
+    {
+      field = $1
+      sub(/^[[:space:]]*/, "", field)
+      if (field == "depends" || field == "makedepends" || field == "checkdepends" ||
+          field ~ /^depends_/ || field ~ /^makedepends_/ || field ~ /^checkdepends_/) {
+        print $2
+      }
+    }
+  ' "$srcinfo_file" | while IFS= read -r value; do
+    normalize_dep_name "$value" || true
+  done | sort -u
+}
+
+json_array_from_file() {
+  local values_file="$1"
+  if [[ -s "$values_file" ]]; then
+    jq -R . "$values_file" | jq -s .
+  else
+    echo '[]'
+  fi
+}
+
+write_package_metadata() {
+  local pkg pkg_id local_path srcinfo_file
+  local pkgnames_file provides_file deps_file
+  : > "$package_metadata_file"
+
+  while IFS= read -r pkg; do
+    pkg_id=$(jq -r '.id // empty' <<<"$pkg")
+    local_path=$(jq -r --arg pkg_id "$pkg_id" '.path // ("packages/" + $pkg_id)' <<<"$pkg")
+    srcinfo_file="$local_path/.SRCINFO"
+    if [[ ! -f "$srcinfo_file" ]]; then
+      srcinfo_file="$local_path/.codex-srcinfo"
+    fi
+
+    pkgnames_file="$work_root/${pkg_id}.pkgnames"
+    provides_file="$work_root/${pkg_id}.provides"
+    deps_file="$work_root/${pkg_id}.deps"
+
+    if [[ -f "$srcinfo_file" ]]; then
+      srcinfo_values "$srcinfo_file" "pkgname" > "$pkgnames_file"
+      srcinfo_values "$srcinfo_file" "provides" > "$provides_file"
+      srcinfo_dep_values "$srcinfo_file" > "$deps_file"
+    else
+      printf '%s\n' "$pkg_id" > "$pkgnames_file"
+      : > "$provides_file"
+      : > "$deps_file"
+    fi
+
+    if [[ ! -s "$pkgnames_file" ]]; then
+      printf '%s\n' "$pkg_id" > "$pkgnames_file"
+    fi
+
+    jq -nc \
+      --arg id "$pkg_id" \
+      --argjson pkgnames "$(json_array_from_file "$pkgnames_file")" \
+      --argjson provides "$(json_array_from_file "$provides_file")" \
+      --argjson deps "$(json_array_from_file "$deps_file")" \
+      '{id:$id, pkgnames:$pkgnames, provides:$provides, deps:$deps}' >> "$package_metadata_file"
+  done < "$arch_packages_all_file"
+}
+
+expand_selected_packages() {
+  cp "$selected_ids_file" "$selected_ids_with_deps_file"
+
+  if [[ "$(jq 'length' "$selected_ids_with_deps_file")" -eq 0 ]]; then
+    return 0
+  fi
+
+  local deps_file deps_json_file new_ids_file new_ids_json_file merged_file
+  while true; do
+    deps_file="$work_root/filter-deps.txt"
+    deps_json_file="$work_root/filter-deps.json"
+    new_ids_file="$work_root/filter-new-ids.txt"
+    new_ids_json_file="$work_root/filter-new-ids.json"
+    merged_file="$work_root/filter-merged.json"
+
+    jq -r --slurpfile selected "$selected_ids_with_deps_file" '
+      ($selected[0] // []) as $selected
+      | .id as $id
+      | select($selected | index($id))
+      | .deps[]?
+    ' "$package_metadata_file" | sort -u > "$deps_file"
+    json_array_from_file "$deps_file" > "$deps_json_file"
+
+    jq -r \
+      --slurpfile selected "$selected_ids_with_deps_file" \
+      --slurpfile deps "$deps_json_file" \
+      '
+      ($selected[0] // []) as $selected
+      | ($deps[0] // []) as $deps
+      | .id as $id
+      | select(($selected | index($id) | not) and (((.pkgnames + .provides) | map(select($deps | index(.))) | length) > 0))
+      | .id
+      ' "$package_metadata_file" | sort -u > "$new_ids_file"
+
+    if [[ ! -s "$new_ids_file" ]]; then
+      break
+    fi
+
+    json_array_from_file "$new_ids_file" > "$new_ids_json_file"
+    jq -s '.[0] + .[1] | unique' "$selected_ids_with_deps_file" "$new_ids_json_file" > "$merged_file"
+    mv "$merged_file" "$selected_ids_with_deps_file"
+  done
+}
+
 global_skip_existing=$(jq -r '.repo.prebuild_skip_existing_version // true' "$config_file")
 global_same_policy=$(jq -r '.repo.same_version_rebuild_policy // "warn_skip_upload"' "$config_file")
 global_build_auto_debug=$(jq -r '.repo.build_auto_debug_packages // false' "$config_file")
@@ -108,20 +253,38 @@ else
   echo "Missing GITHUB_REPOSITORY or token; release-aware prebuild skipping disabled"
 fi
 
-count=$(jq \
+jq -c \
   --arg arch "$arch" \
-  --slurpfile selected_ids "$selected_ids_file" \
   '
+  def package_entry:
+    if type == "string" then
+      {id:.}
+    elif type == "object" then
+      .
+    else
+      error("package entries must be strings or objects")
+    end;
+
   . as $root
   | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
-  | ($selected_ids[0] // []) as $selected
-  |
-  [
-    $root.packages[]
-    | select((.arches // $default_arches) | index($arch))
-    | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
-  ] | length
-  ' "$config_file")
+  | $root.packages[]
+  | package_entry
+  | if (.id // "") == "" then error("package entry is missing id") else . end
+  | select((.arches // $default_arches) | index($arch))
+  ' "$config_file" > "$arch_packages_all_file"
+
+write_package_metadata
+expand_selected_packages
+
+jq -c \
+  --slurpfile selected_ids "$selected_ids_with_deps_file" \
+  '
+  ($selected_ids[0] // []) as $selected
+  | .id as $id
+  | select(($selected | length) == 0 or ($selected | index($id)))
+  ' "$arch_packages_all_file" > "$arch_packages_file"
+
+count=$(wc -l < "$arch_packages_file")
 if [[ "$count" -eq 0 ]]; then
   if [[ -n "$package_filter" ]]; then
     echo "No packages configured for arch=$arch matching package_filter=$package_filter"
@@ -136,7 +299,6 @@ while IFS= read -r pkg; do
     echo "package entry is missing id, cannot derive package identifier" >&2
     exit 1
   fi
-  pkg_type=$(jq -r '.type' <<<"$pkg")
   pkg_work="$work_root/$pkg_id"
   src_dir="$pkg_work/src"
   pkg_out="$pkg_work/out"
@@ -155,25 +317,14 @@ while IFS= read -r pkg; do
     exit 1
   fi
 
-  echo "==> processing $pkg_id ($pkg_type) for $arch"
+  echo "==> processing $pkg_id for $arch"
 
-  case "$pkg_type" in
-    aur)
-      clone_aur() {
-        rm -rf "$src_dir"
-        git clone --depth=1 "https://aur.archlinux.org/${pkg_id}.git" "$src_dir"
-      }
-      retry_cmd "clone AUR package $pkg_id" clone_aur
-      ;;
-    local)
-      local_path=$(jq -r --arg pkg_id "$pkg_id" '.path // ("packages/" + $pkg_id)' <<<"$pkg")
-      cp -a "$local_path"/. "$src_dir"/
-      ;;
-    *)
-      echo "unsupported package type for $pkg_id: $pkg_type" >&2
-      exit 1
-      ;;
-  esac
+  local_path=$(jq -r --arg pkg_id "$pkg_id" '.path // ("packages/" + $pkg_id)' <<<"$pkg")
+  if [[ ! -d "$local_path" ]]; then
+    echo "missing local package source for $pkg_id: $local_path" >&2
+    exit 1
+  fi
+  cp -a "$local_path"/. "$src_dir"/
 
   list_err="$pkg_work/list.err"
   if ! EXTRA_BUILD_DEPS="$pkg_extra_build_deps" BUILD_AUTO_DEBUG_PACKAGES="$pkg_build_auto_debug" MAKEPKG_SHARED_ARTIFACT_DIR="$shared_artifact_dir" PREBUILT_REPO_NAME="$repo_name" PREBUILT_REPO_URL="$prebuilt_repo_url" "$makepkg_runner" "$arch" "$src_dir" "$pkg_out" list >"$pkg_work/list.out" 2>"$list_err"; then
@@ -240,7 +391,7 @@ while IFS= read -r pkg; do
     sha256="${sha256_line%% *}"
 
     jq -nc \
-      --arg pkg_id "$pkg_id" \
+      --arg id "$pkg_id" \
       --arg pkgname "$pkgname" \
       --arg version "$pkgver-$pkgrel" \
       --arg arch "$pkgarch" \
@@ -248,22 +399,10 @@ while IFS= read -r pkg; do
       --arg sha256 "$sha256" \
       --arg same_version_rebuild_policy "$pkg_same_policy" \
       --argjson cleanup_old_versions "$pkg_cleanup_old_versions" \
-      '{pkg_id:$pkg_id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy, cleanup_old_versions:$cleanup_old_versions}' >> "$manifest_tmp"
+      '{id:$id, pkgname:$pkgname, version:$version, arch:$arch, filename:$filename, sha256:$sha256, same_version_rebuild_policy:$same_version_rebuild_policy, cleanup_old_versions:$cleanup_old_versions}' >> "$manifest_tmp"
   done
   sort -u -o "$release_assets_file" "$release_assets_file"
-done < <(
-  jq -c \
-    --arg arch "$arch" \
-    --slurpfile selected_ids "$selected_ids_file" \
-    '
-    . as $root
-    | ($root.repo.default_arches // ["x86_64","aarch64"]) as $default_arches
-    | ($selected_ids[0] // []) as $selected
-    | $root.packages[]
-    | select((.arches // $default_arches) | index($arch))
-    | select(.id as $id | ($selected | length) == 0 or ($selected | index($id)))
-    ' "$config_file"
-)
+done < "$arch_packages_file"
 
 if [[ -f "$manifest_tmp" ]]; then
   jq -s '.' "$manifest_tmp" > "$out_dir/manifest.json"
