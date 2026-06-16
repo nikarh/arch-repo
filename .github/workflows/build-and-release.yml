@@ -39,6 +39,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq
 
+      - name: Validate vendored package recipes
+        run: |
+          chmod +x scripts/*.sh
+          scripts/validate-vendored-packages.sh
+          scripts/test-local-dep-export-sim.sh
+
       - name: Build configured packages
         env:
           GH_TOKEN: ${{ github.token }}

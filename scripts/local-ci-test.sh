@@ -6,6 +6,8 @@ package_filter="${2:-${PACKAGE_FILTER:-}}"
 rm -rf "$out_root"
 mkdir -p "$out_root"
 
+scripts/validate-vendored-packages.sh
+scripts/test-local-dep-export-sim.sh
 scripts/build-packages.sh x86_64 "$out_root/x86_64" "$package_filter"
 
 echo "Built packages:"
