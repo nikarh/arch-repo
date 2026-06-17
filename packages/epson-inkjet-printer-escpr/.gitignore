@@ -2,3 +2,5 @@ pkg
 src
 *tar*
 *.rpm
+# Bundled source RPM is vendored via Git LFS (see PKGBUILD source).
+!*.src.rpm
