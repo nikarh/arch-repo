@@ -40,7 +40,6 @@
       "cleanup_old_versions": true
     },
     "joystickwake",
-    "onlyoffice-bin",
     {
       "id": "openscad-bosl2-git",
       "cleanup_old_versions": true
