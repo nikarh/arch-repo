@@ -9,13 +9,6 @@
     ]
   },
   "packages": [
-    {
-      "id": "asp",
-      "arches": [
-        "x86_64",
-        "aarch64"
-      ]
-    },
     "broadcom-bt-firmware",
     "chromium-widevine",
     "code-features",
@@ -69,13 +62,11 @@
     },
     "celt",
     "jack",
-    "sdl2",
     "cemu",
     "gtk2",
     "openssl-1.0",
     "latvia-eid-middleware",
     "eparakstitajs3",
-    "slack-desktop",
     "sunshine",
     "ttf-nanum",
     "orca-slicer-unstable-bin",
@@ -88,13 +79,6 @@
     },
     "voxtype-bin",
     "xpadneo-dkms",
-    {
-      "id": "yay",
-      "arches": [
-        "x86_64",
-        "aarch64"
-      ]
-    },
     "brie-bin",
     "env-secrets-bin",
     {

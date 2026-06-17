@@ -1,4 +1,0 @@
-[sdl2]
-source = "repology"
-repology = "sdl2"
-repo = "vcpkg"
