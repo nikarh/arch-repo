@@ -60,8 +60,6 @@
       "id": "quickemu-git",
       "cleanup_old_versions": true
     },
-    "celt",
-    "jack",
     "cemu",
     "gtk2",
     "openssl-1.0",
