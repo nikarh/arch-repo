@@ -1,8 +1,0 @@
-*.pkg.tar*
-*.src.tar*
-*.xz
-*.sign
-*.zip
-*.AppImage
-src
-pkg
