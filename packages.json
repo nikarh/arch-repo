@@ -13,7 +13,10 @@
     "chromium-widevine",
     "code-features",
     "code-marketplace",
-    "cursor-bin",
+    {
+      "id": "cursor-bin",
+      "cleanup_old_versions": true
+    },
     {
       "id": "dotool-git",
       "cleanup_old_versions": true
