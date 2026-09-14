@@ -1,7 +1,7 @@
 # Maintainer: Nikolay Arhipov <n@arhipov.net>
 pkgbase=brie-bin
 pkgname=brie-bin
-pkgver=0.0.11
+pkgver=0.0.14
 pkgrel=1
 pkgdesc="A CLI toolset for running executables with Wine in isolated prefixes"
 arch=('x86_64')

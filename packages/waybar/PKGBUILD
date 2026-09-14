@@ -1,111 +1,127 @@
-# Maintainer: Nikolay Arhipov <n@arhipov.net>
-# Adapted from the Arch Linux waybar package.
+# Maintainer:
+# Contributor: Alexis Rouillard <contact@arouillard.fr>
 
-pkgname=waybar-nikarh
-pkgver=0.15.0.r4486.g6ab48263
-pkgrel=2
-pkgdesc='Highly customizable Wayland bar for Sway and Wlroots based compositors'
-arch=('x86_64')
-url="https://github.com/nikarh/Waybar/"
+## options
+: ${_use_sodeps:=false}
+
+: ${_with_cava:=false}
+: ${_with_gpsd:=false}
+
+_pkgname="waybar"
+pkgname="$_pkgname-git"
+pkgver=0.15.0.r1008.g2a12740
+pkgrel=1
+pkgdesc="Highly customizable Wayland bar for Sway and Wlroots based compositors"
+url='https://github.com/Alexays/Waybar'
 license=('MIT')
-provides=('waybar')
-conflicts=('waybar')
-replaces=('waybar')
+arch=('x86_64')
+
 depends=(
-    'atkmm'
-    'cairomm'
-    'fmt'
-    'glib2'
-    'glibc'
-    'glibmm'
-    'gpsd'
-    'gtk-layer-shell'
-    'gtk3'
-    'gtkmm3'
-    'jsoncpp'
-    'libdbusmenu-gtk3'
-    'libevdev'
-    'libgcc'
-    'libinput'
-    'libmpdclient'
-    'libnl'
-    'libpipewire'
-    'libpulse'
-    'libsigc++'
-    'libstdc++'
-    'libwireplumber'
-    'libxkbcommon'
-    'playerctl'
-    'sndio'
-    'spdlog'
-    'systemd-libs'
-    'upower'
-    'wayland'
+  'fmt'
+  'gtk-layer-shell'
+  'gtkmm3'
+  'jack'
+  'jsoncpp'
+  'libdbusmenu-gtk3'
+  'libevdev'
+  'libinput'
+  'libmm-glib'
+  'libmpdclient'
+  'libnl'
+  'libpulse'
+  'libsigc++'
+  'libwireplumber'
+  'libxkbcommon'
+  'playerctl'
+  'sndio'
+  'spdlog'
+  'upower'
+  'wayland'
 )
 makedepends=(
-    'catch2'
-    'cmake'
-    'git'
-    'meson'
-    'glib2-devel'
-    'scdoc'
-    'wayland-protocols'
+  'catch2'
+  'cmake'
+  'git'
+  'glib2-devel' # gdbus-codegen
+  'meson'
+  'python-setuptools'
+  'scdoc' # to generate manpages
+  'wayland-protocols'
 )
-backup=(
-    etc/xdg/waybar/config.jsonc
-    etc/xdg/waybar/style.css
+checkdepends=(
+  'bash'
 )
 optdepends=(
-    'otf-font-awesome: Icons in the default configuration'
+  'otf-font-awesome: Icons in the default configuration'
 )
-source=("waybar::git+https://github.com/nikarh/Waybar.git#branch=master")
-b2sums=('SKIP')
+
+if [[ "${_with_cava::1}" == "t" ]]; then
+  depends+=('libcava') # AUR
+fi
+if [[ "${_with_gpsd::1}" == "t" ]]; then
+  depends+=('gpsd')
+fi
+
+provides=("$_pkgname=${pkgver%.g*}")
+conflicts=("$_pkgname")
+
+backup=(
+  'etc/xdg/waybar/config.jsonc'
+  'etc/xdg/waybar/style.css'
+)
+
+_pkgsrc="$_pkgname"
+source=("$_pkgsrc"::"git+$url.git")
+sha256sums=('SKIP')
 
 pkgver() {
-    cd waybar
-
-    local project_version revision commit
-    project_version=$(sed -n "s/.*version: '\\([^']*\\)'.*/\\1/p" meson.build | head -n1)
-    revision=$(git rev-list --count HEAD)
-    commit=$(git rev-parse --short HEAD)
-
-    printf '%s.r%s.g%s' "$project_version" "$revision" "$commit"
+  cd "$_pkgsrc"
+  git describe --long --tags --abbrev=7 --exclude='*[a-zA-Z][a-zA-Z]*' \
+    | sed -E 's/^[^0-9]*//;s/([^-]*-g)/r\1/;s/-/./g'
 }
 
 build() {
-    cd waybar
-    meson --prefix=/usr \
-          --buildtype=plain \
-          --auto-features=enabled \
-          --wrap-mode=nodownload \
-          -Dcpp_std=c++20 \
-          -Dexperimental=true \
-          -Dcava=disabled \
-          -Djack=disabled \
-          -Dtests=enabled \
-          build
-    meson compile -C build
+  local _meson_args=(
+    -Dexperimental=true
+  )
+
+  if [ "${_with_cava::1}" != "t" ]; then
+    _meson_args+=(-Dcava=disabled)
+  fi
+
+  if [ "${_with_gpsd::1}" != "t" ]; then
+    _meson_args+=(-Dgps=disabled)
+  fi
+
+  if ((!CHECKFUNC)); then
+    _meson_args+=(-Dtests=disabled)
+  fi
+
+  arch-meson "${_meson_args[@]}" "$_pkgsrc" build
+  meson compile -C build
 }
 
 check() {
-    cd waybar
-    meson test -C build --print-errorlogs --no-rebuild --suite waybar
+  meson test -C build --print-errorlogs --no-rebuild --suite waybar
 }
 
 package() {
-    depends+=(
+  if [[ "${_use_sodeps::1}" == "t" ]]; then
+    eval "depends+=(
       'libatkmm-1.6.so'
       'libcairomm-1.0.so'
+      'libfmt.so'
       'libgtk-3.so'
+      'libjack.so'
       'libjsoncpp.so'
       'libpipewire-0.3.so'
       'libsndio.so'
       'libspdlog.so'
       'libudev.so'
       'libupower-glib.so'
-    )
+    )"
+  fi
 
-    cd waybar
-    meson install -C build --destdir "$pkgdir"
-    install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
+  meson install -C build --destdir "$pkgdir"
+  install -Dm644 "$_pkgsrc/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname/"
 }

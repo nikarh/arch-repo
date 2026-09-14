@@ -1,6 +1,6 @@
 pkgbase = brie-bin
 	pkgdesc = A CLI toolset for running executables with Wine in isolated prefixes
-	pkgver = 0.0.11
+	pkgver = 0.0.14
 	pkgrel = 1
 	url = https://github.com/nikarh/brie
 	arch = x86_64
@@ -11,7 +11,7 @@ pkgbase = brie-bin
 	makedepends = awk
 	provides = brie
 	conflicts = brie
-	source = brie-0.0.11-x86_64.tar.gz::https://github.com/nikarh/brie/releases/download/v0.0.11/brie-x86_64-unknown-linux-gnu-v0.0.11.tar.gz
+	source = brie-0.0.14-x86_64.tar.gz::https://github.com/nikarh/brie/releases/download/v0.0.14/brie-x86_64-unknown-linux-gnu-v0.0.14.tar.gz
 	source = brie.service
 	sha256sums = SKIP
 	sha256sums = 2885d88be337d001bcc10654eb7841b02ae71940a85f35ffbf85f942d3a55efb
