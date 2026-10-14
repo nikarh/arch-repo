@@ -1,7 +1,7 @@
 # Maintainer: Nikolay Arhipov <n@arhipov.net>
 pkgbase=brie-bin
 pkgname=brie-bin
-pkgver=0.0.14
+pkgver=0.0.15
 pkgrel=1
 pkgdesc="A CLI toolset for running executables with Wine in isolated prefixes"
 arch=('x86_64')
@@ -12,7 +12,7 @@ conflicts=("${pkgname%-bin}")
 
 source=("${pkgbase%-bin}-${pkgver}-$CARCH.tar.gz::$url/releases/download/v${pkgver}/brie-$CARCH-unknown-linux-gnu-v${pkgver}.tar.gz"
         "brie.service")
-sha256sums=('55759a0d640d04318d057bd4180d590d7da06d6d1aab6853bafb010bea96b435'
+sha256sums=('3f6b646fd5b0e6ba734cba968e7a12a58605f8a00b17914ac91b2780a6f16a22'
             '2885d88be337d001bcc10654eb7841b02ae71940a85f35ffbf85f942d3a55efb')
 
 package() {
