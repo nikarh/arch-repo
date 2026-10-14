@@ -129,6 +129,12 @@ Each local package should have at least:
 - `packages/<pkg>/PKGBUILD`
 - any files referenced by that PKGBUILD
 
+### Dependabot auto-merge
+
+`.github/workflows/dependabot-auto-merge.yml` squash-merges open Dependabot PRs once every check on the head commit (at least `Validate` and `analyze (actions)`) is green. It runs after `CI`/`CodeQL` complete and every 6 hours. Conflicting PRs are left to Dependabot, which rebases them automatically.
+
+It uses `GITHUB_TOKEN` by default. If GitHub refuses that token for PRs touching workflow files, add a fine-grained PAT with Contents, Pull requests and Workflows write access as the `DEPENDABOT_MERGE_TOKEN` repo secret.
+
 ### Optional signing
 
 If you want signed repo metadata, add these repo secrets:

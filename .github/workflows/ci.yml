@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+
+      - name: Check shell script syntax
+        run: |
+          for f in scripts/*.sh; do
+            bash -n "$f"
+          done
+
+      - name: Validate packages.json
+        run: |
+          jq -e '.repo.name and (.packages | type == "array")' packages.json >/dev/null
+          jq -r '.packages[] | if type == "string" then {id: .} else . end | .path // ("packages/" + .id)' packages.json | while read -r dir; do
+            [[ -f "$dir/PKGBUILD" ]] || { echo "missing $dir/PKGBUILD" >&2; exit 1; }
+          done
+
+      - name: Validate vendored package recipes
+        run: |
+          chmod +x scripts/*.sh
+          scripts/validate-vendored-packages.sh
+          scripts/test-local-dep-export-sim.sh
