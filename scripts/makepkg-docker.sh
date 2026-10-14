@@ -259,6 +259,13 @@ install_shared_dependency_packages() {
 }
 
 if [[ "$MODE" == "list" ]]; then
+  # --packagelist only reads the static pkgver, so resolve pkgver() first;
+  # otherwise VCS packages are compared against a stale version.
+  if grep -Eq '^[[:space:]]*(function[[:space:]]+)?pkgver[[:space:]]*\(\)' PKGBUILD; then
+    if ! run_makepkg --nobuild --nodeps --noprepare --skippgpcheck --noprogressbar >&2; then
+      echo "WARN: failed to resolve pkgver(); falling back to static pkgver" >&2
+    fi
+  fi
   run_makepkg --packagelist | sed 's#^.*/##'
   exit 0
 fi

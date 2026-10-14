@@ -116,6 +116,7 @@ Field notes:
 - `scripts/validate-vendored-packages.sh` rejects vendored recipes that declare `bun`, `nodejs`, `npm`, `pnpm`, or `yarn` dependencies, or run Node/Bun package-manager commands from packaging files.
 - If a package PKGBUILD declares `validpgpkeys`, build automatically tries to import those keys before source verification.
 - If a package is listed for an arch but PKGBUILD does not support that arch, it is skipped with a warning for that arch build.
+- If a PKGBUILD defines `pkgver()` (VCS packages), sources are fetched and `pkgver()` is resolved before the release-aware skip check, so `-git` packages rebuild only when upstream changes.
 
 Behavior summary:
 - Default behavior (`prebuild_skip_existing_version: true`): no unnecessary rebuilds if same-version asset already exists in release.
