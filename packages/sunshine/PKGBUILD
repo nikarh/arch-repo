@@ -4,7 +4,7 @@
 
 pkgname=sunshine
 _pkgname=${pkgname%-bin}
-pkgver=2026.516.143833
+pkgver=2026.914.233613
 _gittag=v$pkgver
 pkgrel=1
 pkgdesc="A self-hosted game stream host for Moonlight."
@@ -18,14 +18,15 @@ install=sunshine.install
 depends=(
     'avahi'
     'curl'
+    'gcc-libs'
+    'gtk3'
+    'hicolor-icon-theme'
     'libayatana-appindicator'
     'libcap'
     'libdrm'
     'libevdev'
-    'libpipewire'
-    'miniupnpc'
     'libmfx'
-    'libnotify'
+    'libpipewire'
     'libpulse'
     'libva'
     'libx11'
@@ -33,9 +34,12 @@ depends=(
     'libxfixes'
     'libxrandr'
     'libxtst'
+    'miniupnpc'
     'numactl'
     'openssl'
     'opus'
+    'qt6-base'
+    'qt6-svg'
     'udev'
     'vulkan-icd-loader'
     'which'
@@ -48,7 +52,7 @@ optdepends=(
 # makedepends=('patchelf')
 conflicts=('sunshine-bin')
 provides=()
-b2sums=('86bc061bfdab533987a1d32faa02ca275364915cc7eebb54e0ab4ddee19c1b9de980e5c7b4a0bfbd0ef5b0a6bf509f25f9525bf214881ce4dd45da6ec6c0f778')
+b2sums=('104008bd7999e8d938a1b559e6277aea60a29242a62a1d00bdce32ef1ce2125954ff11f8657f3f4cb3edc60a0d48e4a4c9ac80a5556f0166e5bc35fc94938101')
 
 # prepare() {
 #     patchelf \

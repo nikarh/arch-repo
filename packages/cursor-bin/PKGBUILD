@@ -2,8 +2,8 @@
 # Node-free packaging based on the cursor-early-access-bin AUR recipe.
 
 pkgname=cursor-bin
-pkgver=3.10.20
-_upstream_pkgver=3.10.20
+pkgver=3.24.18
+_upstream_pkgver=3.24.18
 pkgrel=1
 pkgdesc='AI-first coding environment (bundled Electron)'
 arch=('x86_64')
@@ -29,7 +29,7 @@ optdepends=(
   'libdbusmenu-glib: KDE global menu support'
 )
 options=(!strip !debug)
-_commit=23b9fb205fe595ea2be29da7214e19762d037fc3
+_commit=be4c9e5350d77747b42cd467cbd3370a753d464b
 source=(
   "cursor_${_upstream_pkgver}_amd64.deb::https://downloads.cursor.com/production/${_commit}/linux/x64/deb/amd64/deb/cursor_${_upstream_pkgver}_amd64.deb"
   cursor.desktop
@@ -38,7 +38,7 @@ source=(
 sha512sums=('SKIP'
   '037aa5d878eddb06fc1d5be788e7bc64545773decacb34228053be746dfc33237371ad49cc331dac8e3437d7d885a9bc1564d0f114fc22e308827b33d0c55ad8'
   '9defecd35fd033a484642732605264cc00faf5791d852234d9705bf9ac005c76173780cd496208e4150685ac9ddbb73c8eb87cd5141526dd4521d455342e8233')
-sha512sums[0]=6574a96b5258b0f93ef548c127818303e471047d51ef7533f34b6602a81f746f1c5d0f7384093c9df9b5677f587dc28ef21ebdd2f641ce705b79c8a1b20a6159
+sha512sums[0]=2c22d7795af46f97b23ff432a80525c2697e5a2a2ac00ee97c9043898240e8ee01136fb53a6cce19dcb3e0bd23d81f21c1277320db6334873c809be7b71db45a
 noextract=("cursor_${_upstream_pkgver}_amd64.deb")
 
 package() {

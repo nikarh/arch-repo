@@ -1,19 +1,23 @@
-# Maintainer: envolution
+# Maintainer: Ash <xash at riseup d0t net>
+# Contributor: envolution
 # Contributor: Doug Newgard <scimmia at archlinux dot org>
 # shellcheck shell=bash disable=SC2034,SC2154
 # ci|prebuild=_sourcefix.sh| https://github.com/envolution/aur/blob/main/maintain/build/chromium-widevine/_sourcefix.sh
 
 pkgname=chromium-widevine
 pkgdesc='A browser plugin designed for the viewing of premium video content'
-pkgver=4.10.2934.0
+pkgver=4.10.3112.0
+# Release/file ids and sha512 from Mozilla's toolkit/content/gmp-sources/widevinecdm.json
+_release_id=acqexsh26ysyu3zxeotqtsp63idq
+_file_id=ad7kyx4q7wx7xknykmkbonbbmnwq
 pkgrel=1
 epoch=1
 arch=('x86_64')
 url='https://www.widevine.com/'
 license=('custom')
 options=('!strip')
-source=(https://www.google.com/dl/release2/chrome_component/accssjtqfpf5qicscrptql4jyyxa_4.10.2934.0/oimompecagnajdejgnnjijobebaeigek_4.10.2934.0_linux_ph722a3wl2goebkpserszm6bde.crx3)
-sha256sums=('d36111684f13d2f76f181eb0117a873e12e4ee6f0f9a3027a9d022b787d74eb2')
+source=("https://www.google.com/dl/release2/chrome_component/${_release_id}_${pkgver}/oimompecagnajdejgnnjijobebaeigek_${pkgver}_linux64_${_file_id}.crx3")
+sha512sums=('4bc44f7e2010ff1dec995ab496702467ec02f45db2f4d977822be89e40043ee0dd75f3d777539ecf243617029bbe5b41a1171d293b2fa615ffeacf5cd7112f29')
 
 package() {
   depends=('gcc-libs' 'glib2' 'glibc' 'nspr' 'nss')
