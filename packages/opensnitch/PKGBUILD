@@ -115,6 +115,9 @@ build() {
     .
   popd
 
+  # the module cache is read-only, drop it so the build dir can be removed
+  go clean -modcache
+
   # ui translations
   pushd ui/i18n
   ./generate_i18n.sh
