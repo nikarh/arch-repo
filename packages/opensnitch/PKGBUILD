@@ -128,7 +128,21 @@ build() {
   # eBPF modules
   pushd ebpf_prog
   local KDIR=/usr/src/linux
-  ARCH="$CARCH" KERNEL_DIR="$KDIR" KERNEL_HEADERS="$KDIR" make
+  # CC_USING_FENTRY: Arch kernel headers enable the function tracer
+  # -fms-extensions: required by kernel >= 6.19 headers
+  # LLVM >= 23 refuses to lower host-targeted IR to BPF, so drop the host
+  # triple/datalayout from the bitcode before handing it to llc
+  cat > "$srcdir/bpf-llc" <<'EOS'
+#!/bin/sh
+for in; do :; done
+n=$#; i=1
+for a; do [ $i -lt $n ] && set -- "$@" "$a"; i=$((i+1)); done
+shift $n
+llvm-dis -o - "$in" | sed '/^target datalayout/d;/^target triple/d' | llc "$@" -
+EOS
+  chmod +x "$srcdir/bpf-llc"
+  ARCH="$CARCH" KERNEL_DIR="$KDIR" KERNEL_HEADERS="$KDIR" \
+    make CC="clang -DCC_USING_FENTRY -fms-extensions -Wno-microsoft-anon-tag" LLC="$srcdir/bpf-llc"
   popd
 }
 
