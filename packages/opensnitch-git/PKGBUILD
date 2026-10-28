@@ -1,0 +1,166 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+# Based on the Arch Linux extra package by George Rawlinson <grawlinson@archlinux.org>
+# and the AUR opensnitch-git package.
+
+pkgname=opensnitch-git
+pkgver=1.8.0.r0.b404c4c
+pkgrel=1
+pkgdesc='A GNU/Linux application firewall (git version)'
+arch=(x86_64)
+url=https://github.com/evilsocket/opensnitch
+license=(GPL-3.0-or-later)
+depends=(
+  glibc
+  hicolor-icon-theme
+  libnetfilter_queue
+  libnfnetlink
+  python
+  python-grpcio
+  python-protobuf
+  python-slugify
+  python-pyqt6
+  python-pyinotify
+  python-notify2
+  qt6-svg
+)
+makedepends=(
+  git
+  go
+  python-grpcio-tools
+  python-build
+  python-installer
+  python-wheel
+  python-setuptools
+  qt6-tools
+  llvm
+  clang
+  libelf
+  linux-headers
+  bc
+)
+optdepends=(
+  'logrotate: logfile rotation'
+  'python-qt-material: extra ui themes'
+  'python-pyasn: display network name of IP'
+)
+provides=(opensnitch)
+conflicts=(opensnitch opensnitch-ebpf-module)
+backup=(
+  etc/logrotate.d/opensnitch
+  etc/opensnitchd/default-config.json
+  etc/opensnitchd/system-fw.json
+  etc/opensnitchd/network_aliases.json
+)
+options=(!lto)
+install=opensnitch.install
+source=(
+  "opensnitch::git+$url"
+  tmpfiles.conf
+)
+sha256sums=('SKIP'
+            '09bd2cda97f74033617fd31efce8eba68eac03b29ea6d0f55aba2cef18824a72')
+
+_srcname=opensnitch
+
+pkgver() {
+  cd "$_srcname"
+  git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-g/./;s/-/./g'
+}
+
+prepare() {
+  cd "$_srcname"
+
+  # install data files relative to the prefix instead of absolute /usr paths
+  sed -i "s|('/usr/share/|('share/|g" ui/setup.py
+
+  # drop Debian-specific python paths
+  local site_packages=$(python -c "import site; print(site.getsitepackages()[0])")
+  sed -i "s|/usr/lib/python3/dist-packages/data/|${site_packages}/pyasn/data/|g" ui/opensnitch/utils/__init__.py
+  sed -i "s|/usr/lib/python3/dist-packages/|${site_packages}/|g" ui/bin/opensnitch-ui
+
+  cd daemon
+  export GOPATH="$srcdir/gopath"
+  go mod download
+}
+
+build() {
+  cd "$_srcname"
+
+  export GOPATH="$srcdir/gopath"
+  export GOBIN="$srcdir/gobin"
+  export PATH="$GOBIN:/usr/lib/qt6/bin:$PATH"
+  export CGO_CPPFLAGS="${CPPFLAGS}"
+  export CGO_CFLAGS="${CFLAGS}"
+  export CGO_CXXFLAGS="${CXXFLAGS}"
+  export CGO_LDFLAGS="${LDFLAGS}"
+
+  # generate Go gRPC bindings (not shipped in the source tree)
+  # plugin versions match the protobuf/grpc runtimes pinned in daemon/go.mod
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
+  pushd proto
+  python -m grpc_tools.protoc -I. ui.proto \
+    --go_out=../daemon/ui/protocol/ --go-grpc_out=../daemon/ui/protocol/ \
+    --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative
+  popd
+
+  # daemon
+  pushd daemon
+  go build -v \
+    -buildmode=pie \
+    -trimpath \
+    -mod=readonly \
+    -modcacherw \
+    -ldflags "-linkmode external -extldflags \"${LDFLAGS}\"" \
+    -o opensnitchd \
+    .
+  popd
+
+  # ui translations
+  pushd ui/i18n
+  ./generate_i18n.sh
+  for lang in locales/*; do
+    lang=${lang#locales/}
+    install -Dm644 "locales/$lang/opensnitch-$lang.qm" -t "../opensnitch/i18n/$lang"
+  done
+  popd
+
+  # python ui
+  pushd ui
+  find opensnitch/proto/ -name 'ui_pb2_grpc.py' -exec sed -i 's/^import ui_pb2/from . import ui_pb2/' {} \;
+  python -m build --wheel --no-isolation
+  popd
+
+  # eBPF modules
+  pushd ebpf_prog
+  local KDIR=/usr/src/linux
+  ARCH="$CARCH" KERNEL_DIR="$KDIR" KERNEL_HEADERS="$KDIR" make
+  popd
+}
+
+package() {
+  cd "$_srcname"
+
+  # daemon
+  install -vDm755 -t "$pkgdir/usr/bin" daemon/opensnitchd
+
+  # systemd integration
+  install -vDm644 utils/packaging/daemon/deb/debian/opensnitch.service "$pkgdir/usr/lib/systemd/system/opensnitchd.service"
+  install -vDm644 "$srcdir/tmpfiles.conf" "$pkgdir/usr/lib/tmpfiles.d/opensnitch.conf"
+
+  # configuration
+  install -vDm644 -t "$pkgdir/etc/opensnitchd" daemon/data/{default-config,system-fw,network_aliases}.json
+
+  # logrotate
+  install -vDm644 utils/packaging/daemon/deb/debian/opensnitch.logrotate "$pkgdir/etc/logrotate.d/opensnitch"
+
+  # python ui
+  python -m installer --destdir="$pkgdir" ui/dist/*.whl
+
+  # eBPF modules
+  install -vDm644 ebpf_prog/opensnitch*.o -t "$pkgdir/usr/lib/opensnitchd/ebpf"
+
+  # tests are in site-packages, big no-no
+  local site_packages=$(python -c "import site; print(site.getsitepackages()[0])")
+  rm -rf "$pkgdir/$site_packages/tests"
+}

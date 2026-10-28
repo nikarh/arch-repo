@@ -86,6 +86,11 @@
       "id": "kvantum-theme-dracula-git",
       "cleanup_old_versions": true
     },
+    "opensnitch",
+    {
+      "id": "opensnitch-git",
+      "cleanup_old_versions": true
+    },
     "micro-locker",
     "pw-sinksource-status",
     "sway-nvidia-session",
