@@ -4,7 +4,7 @@
 
 pkgname=opensnitch
 pkgver=1.8.0
-pkgrel=1
+pkgrel=2
 pkgdesc='A GNU/Linux application firewall'
 arch=(x86_64)
 url=https://github.com/evilsocket/opensnitch
@@ -55,14 +55,19 @@ install=opensnitch.install
 source=(
   "$pkgname::git+$url#tag=v${pkgver}"
   tmpfiles.conf
+  fix-popup-crash-on-wayland.patch
 )
 sha256sums=('SKIP'
-            '09bd2cda97f74033617fd31efce8eba68eac03b29ea6d0f55aba2cef18824a72')
+            '09bd2cda97f74033617fd31efce8eba68eac03b29ea6d0f55aba2cef18824a72'
+            'a7a58e4b79cc7a5d68babd9282094ef364413593e04bd183d750ce5b79bdeb74')
 
 _srcname=$pkgname
 
 prepare() {
   cd "$_srcname"
+
+  # fixed upstream after 1.8.0
+  git apply "$srcdir/fix-popup-crash-on-wayland.patch"
 
   # install data files relative to the prefix instead of absolute /usr paths
   sed -i "s|('/usr/share/|('share/|g" ui/setup.py

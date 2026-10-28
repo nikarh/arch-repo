@@ -1,7 +1,7 @@
 pkgbase = opensnitch
 	pkgdesc = A GNU/Linux application firewall
 	pkgver = 1.8.0
-	pkgrel = 1
+	pkgrel = 2
 	url = https://github.com/evilsocket/opensnitch
 	install = opensnitch.install
 	arch = x86_64
@@ -42,7 +42,9 @@ pkgbase = opensnitch
 	backup = etc/opensnitchd/network_aliases.json
 	source = opensnitch::git+https://github.com/evilsocket/opensnitch#tag=v1.8.0
 	source = tmpfiles.conf
+	source = fix-popup-crash-on-wayland.patch
 	sha256sums = SKIP
 	sha256sums = 09bd2cda97f74033617fd31efce8eba68eac03b29ea6d0f55aba2cef18824a72
+	sha256sums = a7a58e4b79cc7a5d68babd9282094ef364413593e04bd183d750ce5b79bdeb74
 
 pkgname = opensnitch
