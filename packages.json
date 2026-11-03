@@ -93,6 +93,7 @@
     },
     "micro-locker",
     "pw-sinksource-status",
+    "shikane",
     "sway-nvidia-session",
     {
       "id": "waybar",

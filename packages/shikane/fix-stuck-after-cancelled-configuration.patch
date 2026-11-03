@@ -1,0 +1,51 @@
+diff --git a/src/daemon/state_machine.rs b/src/daemon/state_machine.rs
+index 18ee6aa..55486d7 100644
+--- a/src/daemon/state_machine.rs
++++ b/src/daemon/state_machine.rs
+@@ -89,7 +89,7 @@ impl<B: WlBackend> DaemonStateMachine<B> {
+             (VariantApplied(_), Succeeded | Failed | Cancelled) => self.warn_invalid(event),
+             (RestartAfterResponse, AtomicChangeDone) => RestartAfterResponse,
+             (RestartAfterResponse, NeededResourceFinished) => self.shutdown(),
+-            (RestartAfterResponse, Succeeded | Failed | Cancelled) => self.restart(),
++            (RestartAfterResponse, Succeeded | Failed | Cancelled) => self.force_restart(),
+         }
+     }
+ 
+@@ -106,6 +106,12 @@ impl<B: WlBackend> DaemonStateMachine<B> {
+             WlBackendEvent::Cancelled => VSMInput::Cancelled,
+         };
+ 
++        // A discarded variant is a dead end: re-evaluate the current heads instead of
++        // ignoring every further event.
++        if v.state == VariantState::Discarded {
++            return self.force_restart();
++        }
++
+         let action = v.state.advance(input);
+         // Set the current variant and variant state as the variant in progress.
+         // Do the action only with the advanced variant as they rely on the current DSM state!
+@@ -115,7 +121,11 @@ impl<B: WlBackend> DaemonStateMachine<B> {
+ 
+     pub fn do_action(&mut self, action: VariantAction, variant: ValidVariant) -> DSMState {
+         match action {
+-            VariantAction::Restart => self.restart(),
++            // The compositor cancelled the configuration because the output state changed
++            // meanwhile (e.g. a compositor config reload). Head identities may be unchanged,
++            // so the cache check in restart() would skip regeneration and leave the daemon
++            // stuck on a discarded variant (and oneshot mode never exits). Force it.
++            VariantAction::Restart => self.force_restart(),
+             VariantAction::TestVariant => {
+                 if let Err(err) = self.backend.test(&variant) {
+                     warn!("{}", error::report(&err));
+@@ -174,6 +184,11 @@ impl<B: WlBackend> DaemonStateMachine<B> {
+         self.next_variant()
+     }
+ 
++    fn force_restart(&mut self) -> DSMState {
++        self.pm.clear_cached_heads();
++        self.restart()
++    }
++
+     pub fn shutdown(&mut self) -> DSMState {
+         self.encountered_shutdown = true;
+         DSMState::NoVariantApplied

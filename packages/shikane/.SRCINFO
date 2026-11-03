@@ -1,0 +1,17 @@
+pkgbase = shikane
+	pkgdesc = Deterministic dynamic output configuration tool for Wayland compositors
+	pkgver = 1.1.1
+	pkgrel = 2
+	url = https://gitlab.com/w0lff/shikane
+	arch = x86_64
+	license = MIT
+	makedepends = cargo
+	makedepends = pandoc
+	depends = glibc
+	depends = libgcc
+	source = https://gitlab.com/w0lff/shikane/-/archive/v1.1.1/shikane-v1.1.1.tar.gz
+	source = fix-stuck-after-cancelled-configuration.patch
+	b2sums = 1766f42e535515059c1c034c01ff4ee27809186c4f21d720b1783ba0e29d8d07f3efd5ed6a643def9c1cd6bb1ff3ba5c00f9d1de5be96dadb9afd7606b15614b
+	b2sums = 17ebf3be4e225e6a0c804f2e3ab1661f88a52dac288e86eea8c3ec9a46ba33adc1602f5910cf1b24d58240b641def9d998f488fa738da7d3d75d17743fb1b8b2
+
+pkgname = shikane

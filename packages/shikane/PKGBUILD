@@ -1,0 +1,59 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+# Based on the Arch Linux extra package by Carl Smedstad <carsme@archlinux.org>
+# Contributor: Hendrik Wolff <hendrik.wolff@agdsn.me>
+
+pkgname=shikane
+pkgver=1.1.1
+pkgrel=2
+pkgdesc="Deterministic dynamic output configuration tool for Wayland compositors"
+arch=('x86_64')
+url="https://gitlab.com/w0lff/shikane"
+license=('MIT')
+depends=(
+  'glibc'
+  'libgcc'
+)
+makedepends=(
+  'cargo'
+  'pandoc'
+)
+source=(
+  "$url/-/archive/v$pkgver/$pkgname-v$pkgver.tar.gz"
+  'fix-stuck-after-cancelled-configuration.patch'
+)
+b2sums=('1766f42e535515059c1c034c01ff4ee27809186c4f21d720b1783ba0e29d8d07f3efd5ed6a643def9c1cd6bb1ff3ba5c00f9d1de5be96dadb9afd7606b15614b'
+        '17ebf3be4e225e6a0c804f2e3ab1661f88a52dac288e86eea8c3ec9a46ba33adc1602f5910cf1b24d58240b641def9d998f488fa738da7d3d75d17743fb1b8b2')
+
+prepare() {
+  cd $pkgname-v$pkgver
+  # A configuration cancelled by the compositor (e.g. during `swaymsg reload`)
+  # left the daemon stuck on a discarded variant and `shikane -o` never exited.
+  patch -Np1 -i ../fix-stuck-after-cancelled-configuration.patch
+  cargo fetch --locked --target "$(rustc --print host-tuple)"
+}
+
+build() {
+  cd $pkgname-v$pkgver
+  cargo build --frozen --release --all-features
+
+  # Build man pages & docs
+  ./scripts/build-docs.sh man
+  ./scripts/build-docs.sh html
+}
+
+check() {
+  cd $pkgname-v$pkgver
+  cargo test --frozen --all-features
+}
+
+package() {
+  cd $pkgname-v$pkgver
+  install -vDm755 -t "$pkgdir/usr/bin" target/release/shikane
+  install -vDm755 -t "$pkgdir/usr/bin" target/release/shikanectl
+  install -vDm644 -t "$pkgdir/usr/share/man/man1" build/man/shikane.1.gz
+  install -vDm644 -t "$pkgdir/usr/share/man/man1" build/man/shikanectl.1.gz
+  install -vDm644 -t "$pkgdir/usr/share/man/man5" build/man/shikane.5.gz
+  install -vDm644 -t "$pkgdir/usr/share/doc/$pkgname" ./*.md
+  install -vDm644 -t "$pkgdir/usr/share/doc/$pkgname/html" build/html/*
+  install -vDm644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE
+}
