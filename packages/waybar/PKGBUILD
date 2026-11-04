@@ -9,8 +9,8 @@
 
 _pkgname="waybar"
 pkgname="$_pkgname-git"
-pkgver=0.15.0.r1100.gf6f73c8
-pkgrel=2
+pkgver=0.15.0.r1117.ga5c8616
+pkgrel=1
 pkgdesc="Highly customizable Wayland bar for Sway and Wlroots based compositors"
 url='https://github.com/Alexays/Waybar'
 license=('MIT')
@@ -71,29 +71,13 @@ backup=(
 )
 
 _pkgsrc="$_pkgname"
-source=(
-  "$_pkgsrc"::"git+$url.git"
-  'fix-crash-on-output-scale-change.patch'
-)
-sha256sums=('SKIP'
-            'b120eb4990f460f97ecc29b7919644cea0a31361e9f3997223dac199719d6e2c')
+source=("$_pkgsrc"::"git+$url.git")
+sha256sums=('SKIP')
 
 pkgver() {
   cd "$_pkgsrc"
   git describe --long --tags --abbrev=7 --exclude='*[a-zA-Z][a-zA-Z]*' \
     | sed -E 's/^[^0-9]*//;s/([^-]*-g)/r\1/;s/-/./g'
-}
-
-prepare() {
-  cd "$_pkgsrc"
-  # https://github.com/Alexays/Waybar/pull/5435: bar crashes on output scale change.
-  # Skip once upstream has merged it.
-  local _patch="$srcdir/fix-crash-on-output-scale-change.patch"
-  if git apply -R --check "$_patch" 2>/dev/null; then
-    echo "fix-crash-on-output-scale-change.patch already applied upstream, skipping"
-  else
-    git apply "$_patch"
-  fi
 }
 
 build() {

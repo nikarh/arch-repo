@@ -1,7 +1,7 @@
 pkgbase = waybar-git
 	pkgdesc = Highly customizable Wayland bar for Sway and Wlroots based compositors
-	pkgver = 0.15.0.r1100.gf6f73c8
-	pkgrel = 2
+	pkgver = 0.15.0.r1117.ga5c8616
+	pkgrel = 1
 	url = https://github.com/Alexays/Waybar
 	arch = x86_64
 	license = MIT
@@ -35,13 +35,11 @@ pkgbase = waybar-git
 	depends = upower
 	depends = wayland
 	optdepends = otf-font-awesome: Icons in the default configuration
-	provides = waybar=0.15.0.r1100
+	provides = waybar=0.15.0.r1117
 	conflicts = waybar
 	backup = etc/xdg/waybar/config.jsonc
 	backup = etc/xdg/waybar/style.css
 	source = waybar::git+https://github.com/Alexays/Waybar.git
-	source = fix-crash-on-output-scale-change.patch
 	sha256sums = SKIP
-	sha256sums = b120eb4990f460f97ecc29b7919644cea0a31361e9f3997223dac199719d6e2c
 
 pkgname = waybar-git
