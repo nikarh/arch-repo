@@ -1,0 +1,37 @@
+# Maintainer: Nikolay Arhipov <n@arhipov.net>
+pkgname=beszel-agent-bin
+pkgver=0.21.1
+pkgrel=1
+pkgdesc="Beszel agent: system, container, SMART, GPU and systemd stats for a Beszel hub"
+arch=('x86_64' 'aarch64')
+url="https://github.com/henrygd/beszel"
+license=('MIT')
+provides=("${pkgname%-bin}")
+conflicts=("${pkgname%-bin}")
+backup=('etc/beszel-agent.conf')
+optdepends=('smartmontools: S.M.A.R.T. data'
+            'intel-gpu-tools: Intel GPU engine usage (needs CAP_PERFMON)'
+            'pacman-contrib: package updates (checkupdates)'
+            'fakeroot: package updates (checkupdates)')
+
+source=("LICENSE-${pkgver}::https://raw.githubusercontent.com/henrygd/beszel/v${pkgver}/LICENSE"
+        "beszel-agent.service"
+        "beszel-agent.sysusers"
+        "beszel-agent.conf")
+source_x86_64=("beszel-agent-${pkgver}-x86_64.tar.gz::${url}/releases/download/v${pkgver}/beszel-agent_linux_amd64.tar.gz")
+source_aarch64=("beszel-agent-${pkgver}-aarch64.tar.gz::${url}/releases/download/v${pkgver}/beszel-agent_linux_arm64.tar.gz")
+
+sha256sums=('0e0b56361282fb38d9530deea9ed46a4c73763cdf3fda36e526a3b70d0e68301'
+            'fd1d82a23d2c94838c3a29d731f94577bafb94b502a679366ea09d30cea6c948'
+            '734ecf93fe377a827ee5af7813e713cc17bb2f9f3a67fe4bad07652802e6a26c'
+            'ef6e644e71d07d938a35303dca6a828404beea24ee615805a1340103e86d80ca')
+sha256sums_x86_64=('3b6ee592632ec03b9a43312e99a40203a7b3d83fe40dd0c25acda1eb915ea7c0')
+sha256sums_aarch64=('a6ea544976b9a74398ac88d5da5bb96813d9a2e353a37bbfdb6a903fa8ba1838')
+
+package() {
+	install -Dm755 "${srcdir}/beszel-agent" "${pkgdir}/usr/bin/beszel-agent"
+	install -Dm644 "${srcdir}/beszel-agent.service" "${pkgdir}/usr/lib/systemd/system/beszel-agent.service"
+	install -Dm644 "${srcdir}/beszel-agent.sysusers" "${pkgdir}/usr/lib/sysusers.d/beszel-agent.conf"
+	install -Dm644 "${srcdir}/beszel-agent.conf" "${pkgdir}/etc/beszel-agent.conf"
+	install -Dm644 "${srcdir}/LICENSE-${pkgver}" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

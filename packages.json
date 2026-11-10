@@ -83,6 +83,13 @@
     "brie-bin",
     "env-secrets-bin",
     {
+      "id": "beszel-agent-bin",
+      "arches": [
+        "x86_64",
+        "aarch64"
+      ]
+    },
+    {
       "id": "kvantum-theme-dracula-git",
       "cleanup_old_versions": true
     },

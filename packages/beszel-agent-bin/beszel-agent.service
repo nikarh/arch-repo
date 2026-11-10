@@ -1,0 +1,51 @@
+[Unit]
+Description=Beszel agent
+Documentation=https://beszel.dev
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=-/etc/beszel-agent.conf
+ExecStart=/usr/bin/beszel-agent
+User=beszel
+Group=beszel
+StateDirectory=beszel-agent
+Restart=on-failure
+RestartSec=10
+
+# SMART: ATA/SCSI passthrough needs CAP_SYS_RAWIO and read access to the disks
+# (NVMe also needs CAP_SYS_ADMIN: add it to both lines in a drop-in).
+# Service logs: journalctl reads the system journal.
+AmbientCapabilities=CAP_SYS_RAWIO
+CapabilityBoundingSet=CAP_SYS_RAWIO
+SupplementaryGroups=disk systemd-journal
+DevicePolicy=closed
+DeviceAllow=block-sd r
+DeviceAllow=block-blkext r
+DeviceAllow=char-nvme r
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+KeyringMode=private
+UMask=0077
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
